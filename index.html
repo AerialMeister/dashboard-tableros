@@ -566,6 +566,8 @@
 <main class="main">
 
   <!-- Período + Carga -->
+  <div id="error-bar" class="error-bar"></div>
+
   <div class="period-row">
     <label>Desde</label>
     <input type="month" id="periodo-desde" />
@@ -767,7 +769,7 @@ const PAL = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f9731
   const m = String(now.getMonth()+1).padStart(2,'0');
   document.getElementById('periodo-hasta').value = `${y}-${m}`;
   document.getElementById('periodo-desde').value = `${y}-01`;
-  loadAllData();
+  window.addEventListener("DOMContentLoaded", loadAllData);
 })();
 
 /* ── Config ── */
@@ -780,6 +782,7 @@ function setStatus(state, text) {
 
 function showError(msg) {
   const bar = document.getElementById('error-bar');
+  if (!bar) return;
   bar.textContent = msg;
   bar.style.display = msg ? 'block' : 'none';
 }
