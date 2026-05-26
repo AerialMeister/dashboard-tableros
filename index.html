@@ -485,7 +485,21 @@ function renderMain(){
     const last=ps[ps.length-1];
     const lr=noGral(filteredRows.filter(r=>r._periodo===last));
     let keys,getK;
-    if(curTab==='salas'){keys=[...new Set(lr.map(r=>r._sala))].sort();getK=(k,r)=>r._sala===k;}
+    if(curTab==='salas'){
+      // Use each sala's own last period
+      const nrAll=noGral(filteredRows);
+      const salasAll2=[...new Set(nrAll.map(r=>r._sala))];
+      const sData=salasAll2.map(s=>{
+        const sRows=nrAll.filter(r=>r._sala===s);
+        const lastP2=[...new Set(sRows.map(r=>r._periodo))].sort().pop();
+        return {s,v:+sRows.filter(r=>r._periodo===lastP2).reduce((a,r)=>a+r[fld],0).toFixed(2)};
+      }).sort((a,b)=>b.v-a.v);
+      const sortedKeys=sData.map(x=>x.s), sortedData=sData.map(x=>x.v);
+      mkLegend('lg-main',sortedKeys.map((k,i)=>({l:k,c:PAL[i%PAL.length]})));
+      document.getElementById('msub').textContent=`${unit} por sala — último período de cada sala`;
+      cMain=mkChart('cm',{type:'bar',data:{labels:sortedKeys,datasets:[{label:unit,data:sortedData,backgroundColor:sortedKeys.map((_,i)=>PAL[i%PAL.length]),borderWidth:0,borderRadius:4}]},options:gOpts(unit)},cMain);
+      return;
+    }
     else if(curTab==='tableros'){keys=[...new Set(lr.map(r=>r._tablero))].sort();getK=(k,r)=>r._tablero===k;}
     else{keys=[...new Set(lr.map(r=>r._circ))].sort().slice(0,20);getK=(k,r)=>r._circ===k;}
     const dataRaw=keys.map(k=>+lr.filter(r=>getK(k,r)).reduce((s,r)=>s+r[fld],0).toFixed(2));
@@ -498,23 +512,32 @@ function renderMain(){
 }
 
 function renderSala(){
-  const ps=getPeriodos(),last=ps[ps.length-1];
-  const lr=noGral(filteredRows.filter(r=>r._periodo===last));
-  const salasRaw=[...new Set(lr.map(r=>r._sala))];
-  const salasSorted=salasRaw.map(s=>({s,v:+lr.filter(r=>r._sala===s).reduce((a,r)=>a+r._pot,0).toFixed(2)})).sort((a,b)=>b.v-a.v);
+  // Para cada sala, usar su propio último período disponible
+  const nr=noGral(filteredRows);
+  const salasAll=[...new Set(nr.map(r=>r._sala))];
+  const salasSorted=salasAll.map(s=>{
+    const sRows=nr.filter(r=>r._sala===s);
+    const lastP=[...new Set(sRows.map(r=>r._periodo))].sort().pop();
+    const v=+sRows.filter(r=>r._periodo===lastP).reduce((a,r)=>a+r._pot,0).toFixed(2);
+    return {s,v,lastP};
+  }).sort((a,b)=>b.v-a.v);
   const salas=salasSorted.map(x=>x.s), data=salasSorted.map(x=>x.v);
-  document.getElementById('sub-sala').textContent=last||'—';
+  document.getElementById('sub-sala').textContent='último período por sala';
   mkLegend('lg-sala',salas.map((s,i)=>({l:s,c:PAL[i%PAL.length]})));
   cSala=mkChart('cs',{type:'bar',data:{labels:salas,datasets:[{label:'kW',data,backgroundColor:salas.map((_,i)=>PAL[i%PAL.length]),borderWidth:0,borderRadius:5}]},options:gOpts('kW')},cSala);
 }
 
 function renderPie(){
-  const ps=getPeriodos(),last=ps[ps.length-1];
-  const lr=noGral(filteredRows.filter(r=>r._periodo===last));
-  const salas=[...new Set(lr.map(r=>r._sala))].sort();
-  const data=salas.map(s=>+lr.filter(r=>r._sala===s).reduce((a,r)=>a+r._pot,0).toFixed(2));
+  const nr=noGral(filteredRows);
+  const salasAll=[...new Set(nr.map(r=>r._sala))];
+  const salasData=salasAll.map(s=>{
+    const sRows=nr.filter(r=>r._sala===s);
+    const lastP=[...new Set(sRows.map(r=>r._periodo))].sort().pop();
+    return {s,v:+sRows.filter(r=>r._periodo===lastP).reduce((a,r)=>a+r._pot,0).toFixed(2)};
+  });
+  const salas=salasData.map(x=>x.s), data=salasData.map(x=>x.v);
   const total=data.reduce((a,b)=>a+b,0);
-  document.getElementById('sub-pie').textContent=last||'—';
+  document.getElementById('sub-pie').textContent='último período por sala';
   mkLegend('lg-pie',salas.map((s,i)=>({l:`${s} (${total>0?(data[i]/total*100).toFixed(1):0}%)`,c:PAL[i%PAL.length]})));
   cPie=mkChart('cp',{type:'doughnut',data:{labels:salas,datasets:[{data,backgroundColor:salas.map((_,i)=>PAL[i%PAL.length]),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.parsed.toFixed(2)} kW`}}},cutout:'60%'}},cPie);
 }
@@ -558,9 +581,16 @@ let cAcDc=null, cAcDc2=null;
 
 function renderAcDc(){
   const ps=getPeriodos(), last=ps[ps.length-1];
-  const lr=noGral(filteredRows.filter(r=>r._periodo===last));
-  const acRows=lr.filter(r=>r._tipo==='AC');
-  const dcRows=lr.filter(r=>r._tipo==='DC');
+  // Use each sala's own last period to avoid missing salas with different periods
+  const nrAc=noGral(filteredRows);
+  const salasAc=[...new Set(nrAc.map(r=>r._sala))];
+  const lrAc=salasAc.flatMap(s=>{
+    const sRows=nrAc.filter(r=>r._sala===s);
+    const lastP=[...new Set(sRows.map(r=>r._periodo))].sort().pop();
+    return sRows.filter(r=>r._periodo===lastP);
+  });
+  const acRows=lrAc.filter(r=>r._tipo==='AC');
+  const dcRows=lrAc.filter(r=>r._tipo==='DC');
   const acPot=acRows.reduce((s,r)=>s+r._pot,0);
   const dcPot=dcRows.reduce((s,r)=>s+r._pot,0);
 
