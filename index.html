@@ -271,8 +271,12 @@ function normalizeRows(raw, td){
   }
 
   // ── TIC / RESO / Salas TI ──
-  // Paso 1: agrupar filas por clave única (periodo+sala+tablero+circuito)
-  const map={};
+  // Cada fila es independiente — una fase = un circuito monofásico
+  // Excepción: circuitos GRAL/BP (es_circuito_general=true) se agrupan
+  // en trifásico: AVG(R,S,T) * sqrt(3) * 380 / 1000
+  const normales=[];
+  const gralMap={};
+
   raw.forEach(row=>{
     const periodo=(row.periodo||'').slice(0,7);
     const sala=row.sala||salaGroup;
@@ -281,42 +285,47 @@ function normalizeRows(raw, td){
     const fase=(row.fase||'').toUpperCase();
     const I=parseFloat(row.corriente_a||0);
     const isGral=row.es_circuito_general===true;
-    const key=`${periodo}||${sala}||${tablero}||${circ}`;
+    const comentarios=row.comentarios||'';
 
-    if(!map[key]){
-      map[key]={
+    if(isGral){
+      // Cabeceras trifásicas: agrupar fases
+      const key=`${periodo}||${sala}||${tablero}||${circ}`;
+      if(!gralMap[key]) gralMap[key]={
         _tabla:name,_salaGroup:salaGroup,
         _sala:sala,_tablero:tablero,_circ:circ,
-        _periodo:periodo,_tipo:'AC',_isGral:isGral,
-        _r:null,_s:null,_t:null,
-        _comentarios:row.comentarios||''
+        _periodo:periodo,_tipo:'AC',_isGral:true,
+        _r:0,_s:0,_t:0,_comentarios:comentarios
       };
+      if(fase==='R') gralMap[key]._r=I;
+      else if(fase==='S') gralMap[key]._s=I;
+      else if(fase==='T') gralMap[key]._t=I;
+    } else {
+      // Circuitos normales: cada fila es monofásica independiente
+      const I2=I;
+      normales.push({
+        _tabla:name,_salaGroup:salaGroup,
+        _sala:sala,_tablero:tablero,
+        _circ:`${circ}-${fase}`, // incluir fase en ID para distinguir
+        _periodo:periodo,_tipo:'AC',_isGral:false,
+        _r:fase==='R'?I2:null,
+        _s:fase==='S'?I2:null,
+        _t:fase==='T'?I2:null,
+        _corriente:I2,
+        _pot:+(I2*0.9*220/1000).toFixed(4),
+        _comentarios:comentarios
+      });
     }
-    if(fase==='R') map[key]._r=I;
-    else if(fase==='S') map[key]._s=I;
-    else if(fase==='T') map[key]._t=I;
-    else map[key]._r=I; // sin fase → tratar como R
-    if(row.comentarios) map[key]._comentarios=row.comentarios;
   });
 
-  // Paso 2: calcular potencia según número de fases
-  // 3 fases → trifásico: AVG(R,S,T) * sqrt(3) * 380 / 1000
-  // 1 o 2 fases → monofásico: I * 0.9 * 220 / 1000
-  return Object.values(map).map(c=>{
-    const fases=[c._r,c._s,c._t].filter(v=>v!==null);
-    const n=fases.length||1;
-    const r=c._r||0, s=c._s||0, t=c._t||0;
-    const avg=(r+s+t)/n;
-    c._corriente=+avg.toFixed(3);
-    if(n===3){
-      // trifásico
-      c._pot=+(avg*Math.sqrt(3)*380/1000).toFixed(4);
-    } else {
-      // monofásico
-      c._pot=+(avg*0.9*220/1000).toFixed(4);
-    }
-    return c;
+  // Calcular potencia trifásica para GRAL/BP
+  const grales=Object.values(gralMap).map(g=>{
+    const avg=(g._r+g._s+g._t)/3;
+    g._corriente=+avg.toFixed(3);
+    g._pot=+(avg*Math.sqrt(3)*380/1000).toFixed(4);
+    return g;
   });
+
+  return [...normales,...grales];
 }
 
 // ── CARGA ──────────────────────────────────────────────────────
