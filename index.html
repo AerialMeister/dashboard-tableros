@@ -12,7 +12,7 @@
   --border2:rgba(255,255,255,0.12);--text:#e8eaf0;--muted:#7a8299;--hint:#4a5168;
   --accent:#3b82f6;--accent-dim:rgba(59,130,246,0.15);--accent-glow:rgba(59,130,246,0.3);
   --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.15);--green:#10b981;--green-dim:rgba(16,185,129,0.12);
-  --red:#ef4444;--red-dim:rgba(239,68,68,0.12);--purple:#8b5cf6;--purple-dim:rgba(139,92,246,0.12);
+  --red:#ef4444;--red-dim:rgba(239,68,68,0.12);--purple:#8b5cf6;
   --font-d:'Syne',sans-serif;--font-m:'DM Mono',monospace;--r:10px;--rs:6px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -27,11 +27,8 @@ body{font-family:var(--font-m);background:var(--bg);color:var(--text);min-height
 .sdot.ok{background:var(--green);box-shadow:0 0 6px var(--green);}
 .sdot.err{background:var(--red);}
 .main{max-width:1280px;margin:0 auto;padding:24px 28px;}
-.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:16px;}
-.plabel{font-family:var(--font-d);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:10px;}
-input[type=text],input[type=month],select{background:var(--bg);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--font-m);font-size:12px;padding:7px 11px;width:100%;transition:border-color 0.2s;outline:none;}
+input[type=month],select{background:var(--bg);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--font-m);font-size:12px;padding:7px 11px;width:100%;transition:border-color 0.2s;outline:none;}
 input:focus,select:focus{border-color:var(--accent);}
-input::placeholder{color:var(--hint);}
 select option{background:var(--surface2);}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:var(--rs);font-family:var(--font-m);font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;}
 .btn-p{background:var(--accent);color:#fff;}
@@ -69,12 +66,12 @@ select option{background:var(--surface2);}
 .tab{padding:5px 13px;border-radius:4px;font-family:var(--font-m);font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;background:transparent;border:none;transition:all 0.15s;}
 .tab.active{background:var(--surface2);color:var(--text);}
 .tab:hover:not(.active){color:var(--text);}
-.vrow{display:flex;gap:5px;margin-bottom:10px;}
+.vrow{display:flex;gap:5px;}
 .vbtn{padding:3px 11px;font-family:var(--font-m);font-size:10px;border-radius:20px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);transition:all 0.15s;}
 .vbtn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
 .legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;font-size:11px;color:var(--muted);}
 .li{display:flex;align-items:center;gap:4px;}
-.ls{width:10px;height:10px;border-radius:2px;}
+.ls{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
 @media(max-width:780px){.two{grid-template-columns:1fr;}}
 .tpanel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;}
@@ -97,6 +94,7 @@ tbody tr:hover td{background:var(--surface2);}
 .fct{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px;}
 .feq{font-family:var(--font-m);font-size:11px;color:var(--accent);}
 .fdesc{font-size:10px;color:var(--hint);margin-top:3px;}
+.com-cell{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--hint);font-size:11px;}
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
@@ -138,29 +136,25 @@ tbody tr:hover td{background:var(--surface2);}
 
   <div class="sdiv">Filtros</div>
   <div class="filters">
-    <div class="fg"><label>Sala / Tabla</label>
-      <select id="f-tabla" onchange="onTablaChange()">
+    <div class="fg"><label>Sala</label>
+      <select id="f-sala" onchange="onSalaChange()">
         <option value="">Todas las salas</option>
-        <option value="mediciones_tic">Salas TIC</option>
-        <option value="mediciones_sm48">Sala SM48</option>
-        <option value="mediciones_reso">Sala RESO</option>
-        <option value="mediciones_salas_ti">Salas TI</option>
       </select>
     </div>
-    <div class="fg"><label>Tablero (TDU)</label>
+    <div class="fg"><label>Tablero</label>
       <select id="f-tablero" onchange="onTableroChange()">
-        <option value="">Todos</option>
+        <option value="">Todos los tableros</option>
       </select>
     </div>
-    <div class="fg"><label>Circuito (CTO)</label>
+    <div class="fg"><label>Circuito</label>
       <select id="f-circ" onchange="applyFilters()">
-        <option value="">Todos</option>
+        <option value="">Todos los circuitos</option>
       </select>
     </div>
     <div class="fg"><label>Solo con medición</label>
-      <select id="f-nonzero" onchange="applyFilters()">
+      <select id="f-nz" onchange="applyFilters()">
         <option value="0">Todos los circuitos</option>
-        <option value="1">Solo corriente > 0</option>
+        <option value="1">Solo corriente &gt; 0</option>
       </select>
     </div>
   </div>
@@ -190,7 +184,7 @@ tbody tr:hover td{background:var(--surface2);}
     </div>
     <div id="lg-main" class="legend"></div>
     <div style="position:relative;width:100%;height:340px;">
-      <canvas id="cm" role="img" aria-label="Gráfico principal de consumo eléctrico"></canvas>
+      <canvas id="cm"></canvas>
     </div>
   </div>
 
@@ -198,24 +192,31 @@ tbody tr:hover td{background:var(--surface2);}
     <div class="cpanel" style="margin-bottom:0">
       <div class="cph"><div><div class="cptitle">Potencia por sala</div><div class="cpsub" id="sub-sala">último período</div></div></div>
       <div id="lg-sala" class="legend"></div>
-      <div style="position:relative;width:100%;height:260px;">
-        <canvas id="cs" role="img" aria-label="Potencia por sala"></canvas>
-      </div>
+      <div style="position:relative;width:100%;height:260px;"><canvas id="cs"></canvas></div>
     </div>
     <div class="cpanel" style="margin-bottom:0">
       <div class="cph"><div><div class="cptitle">Distribución %</div><div class="cpsub" id="sub-pie">último período</div></div></div>
       <div id="lg-pie" class="legend"></div>
-      <div style="position:relative;width:100%;height:260px;">
-        <canvas id="cp" role="img" aria-label="Distribución por sala"></canvas>
-      </div>
+      <div style="position:relative;width:100%;height:260px;"><canvas id="cp"></canvas></div>
     </div>
   </div>
 
   <div class="cpanel" style="margin-top:14px;">
     <div class="cph"><div><div class="cptitle">Detalle por circuito</div><div class="cpsub" id="sub-det">último período</div></div></div>
     <div id="lg-det" class="legend"></div>
-    <div style="position:relative;width:100%;" id="det-wrap">
-      <canvas id="cd" role="img" aria-label="Detalle por circuito"></canvas>
+    <div style="position:relative;width:100%;" id="det-wrap"><canvas id="cd"></canvas></div>
+  </div>
+
+  <div class="two" style="margin-top:14px;">
+    <div class="cpanel" style="margin-bottom:0">
+      <div class="cph"><div><div class="cptitle">Potencia AC vs DC</div><div class="cpsub" id="sub-acdc">último período</div></div></div>
+      <div id="lg-acdc" class="legend"></div>
+      <div style="position:relative;width:100%;height:260px;"><canvas id="cacdc"></canvas></div>
+    </div>
+    <div class="cpanel" style="margin-bottom:0">
+      <div class="cph"><div><div class="cptitle">Evolución AC vs DC</div><div class="cpsub" id="sub-acdc2">en el tiempo</div></div></div>
+      <div id="lg-acdc2" class="legend"></div>
+      <div style="position:relative;width:100%;height:260px;"><canvas id="cacdc2"></canvas></div>
     </div>
   </div>
 
@@ -227,10 +228,10 @@ tbody tr:hover td{background:var(--surface2);}
     <div class="tw">
       <table>
         <thead><tr>
-          <th>Sala</th><th>TDU</th><th>Circuito</th><th>Fase</th><th>Tipo</th>
-          <th>Período</th><th class="num">Corriente A</th><th class="num">Potencia kW</th>
+          <th>Sala</th><th>Tablero</th><th>Circuito</th><th>Fase</th><th>Tipo</th>
+          <th>Período</th><th class="num">Corriente A</th><th class="num">Potencia kW</th><th>Comentarios</th>
         </tr></thead>
-        <tbody id="tbody"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--hint);">Carga datos para visualizar</td></tr></tbody>
+        <tbody id="tbody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--hint);">Carga datos para visualizar</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -242,6 +243,18 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const PAL=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316','#ec4899','#84cc16','#a78bfa'];
 let allRows=[],filteredRows=[],cMain=null,cSala=null,cPie=null,cDet=null;
 let curTab='evol',curVista='pot';
+
+// Estructura homologada — todas las tablas ahora tienen:
+// periodo, sala, tablero, cto, fase, es_circuito_general, corriente_a, tipo_corriente
+// mediciones_tic además: comentarios
+// mediciones_salas_ti además: nuevo_tag
+
+const TABLES = [
+  { name:'mediciones_tic',   salaGroup:'TIC',      circCol:'cto',       extraCol:'comentarios' },
+  { name:'mediciones_sm48',  salaGroup:'SM48',     circCol:'sala',      extraCol:null },
+  { name:'mediciones_reso',  salaGroup:'RESO',     circCol:'cto',       extraCol:null },
+  { name:'mediciones_salas_ti', salaGroup:'Salas TI', circCol:'nuevo_tag', extraCol:null },
+];
 
 (function init(){
   const now=new Date();
@@ -266,91 +279,79 @@ async function fetchT(table){
   return r.json();
 }
 
-function calcPot(row){
-  const isDC=row.tipo_corriente==='DC';
-  const isGral=row.es_circuito_general===true;
-  const I=parseFloat(row.corriente_a||0);
-  if(isDC) return +(I*53/1000).toFixed(4);
-  if(isGral){
-    const R=parseFloat(row._r||I),S=parseFloat(row._s||0),T=parseFloat(row._t||0);
+function calcPot(corriente_a, tipo_corriente, es_circuito_general, r, s, t){
+  const I=parseFloat(corriente_a||0);
+  if(tipo_corriente==='DC') return +(I*53/1000).toFixed(4);
+  if(es_circuito_general===true){
+    const R=parseFloat(r||I),S=parseFloat(s||0),T=parseFloat(t||0);
     const n=(S>0||T>0)?3:1;
     return +(((R+S+T)/n)*Math.sqrt(3)*380/1000).toFixed(4);
   }
   return +(I*0.9*220/1000).toFixed(4);
 }
 
-// Para TIC y RESO: cada fila es una fase (R/S/T) del mismo circuito
-// Los circuitos generales tienen 3 filas (una por fase), los normales tienen 1
-function normalizeRows(raw,tabla){
-  const salaMap={mediciones_tic:'TIC',mediciones_sm48:'SM48',mediciones_reso:'RESO',mediciones_salas_ti:'Salas TI'};
-  
-  if(tabla==='mediciones_sm48'){
+function normalizeRows(raw, tableDef){
+  // Para tablas con fases (TIC, RESO, Salas TI): agrupar circuitos generales
+  const {name, salaGroup, circCol} = tableDef;
+
+  if(name==='mediciones_sm48'){
     return raw.map(row=>({
-      ...row,_tabla:tabla,
-      _sala:'SM48',
-      _tablero:row.tablero||row.sala||'—',
+      _tabla:name, _salaGroup:'SM48',
+      _sala:row.sala||'SM48',
+      _tablero:row.tablero||'—',
       _circ:row.sala||'—',
-      _fase:'—',
+      _fase:'R',
       _periodo:(row.periodo||'').slice(0,7),
-      _r:parseFloat(row.corriente_a||0),_s:0,_t:0,
-      _pot:+(parseFloat(row.corriente_a||0)*53/1000).toFixed(4)
+      _tipo:row.tipo_corriente||'DC',
+      _isGral:false,
+      _corriente:parseFloat(row.corriente_a||0),
+      _pot:+(parseFloat(row.corriente_a||0)*53/1000).toFixed(4),
+      _comentarios:'',
+      _raw:row
     }));
   }
 
-  // Para TIC, RESO, Salas TI: agrupar por periodo+tablero+circuito para circuitos generales
-  const salaLabel=salaMap[tabla]||tabla;
-  const rows=raw.map(row=>{
-    let tablero,circ,salaVal;
-    if(tabla==='mediciones_tic'){
-      salaVal=`TIC ${row.tic||''}`;
-      tablero=row.tdu?`TDU ${row.tdu}`:'—';
-      circ=row.cto?`CTO ${row.cto}`:'—';
-    } else if(tabla==='mediciones_reso'){
-      salaVal=row.sala||'RESO';
-      tablero=row.tdu?`TDU ${row.tdu}`:'—';
-      circ=row.cto?`CTO ${row.cto}`:'—';
-    } else { // salas_ti
-      salaVal=row.sala||'TI';
-      tablero=row.tdu||'—';
-      circ=row.nuevo_tag||row.cto||'—';
-    }
-    return {
-      ...row,_tabla:tabla,
-      _sala:salaVal,_salaGroup:salaLabel,
-      _tablero:tablero,_circ:circ,
-      _fase:row.fase||'—',
-      _periodo:(row.periodo||'').slice(0,7),
-      _r:0,_s:0,_t:0
-    };
-  });
+  // Separar circuitos normales y generales
+  const normales=[], grales={};
 
-  // Ahora para circuitos generales agrupamos fases y calculamos potencia trifásica
-  // Para circuitos normales calculamos potencia monofásica directamente
-  const result=[];
-  const gralMap={};
+  raw.forEach(row=>{
+    const periodo=(row.periodo||'').slice(0,7);
+    const sala=row.sala||salaGroup;
+    const tablero=row.tablero||'—';
+    const circ=row[circCol]||row.cto||'—';
+    const fase=row.fase||'R';
+    const corriente=parseFloat(row.corriente_a||0);
+    const tipo=row.tipo_corriente||'AC';
+    const isGral=row.es_circuito_general===true;
+    const comentarios=row.comentarios||'';
 
-  rows.forEach(row=>{
-    if(row.es_circuito_general===true){
-      const key=`${row._periodo}||${row._tablero}||${row._circ}`;
-      if(!gralMap[key]) gralMap[key]={...row,_r:0,_s:0,_t:0,_fases:[]};
-      const fase=row.fase||'';
-      const I=parseFloat(row.corriente_a||0);
-      if(fase==='R') gralMap[key]._r=I;
-      else if(fase==='S') gralMap[key]._s=I;
-      else if(fase==='T') gralMap[key]._t=I;
-      gralMap[key]._fases.push(fase);
+    if(isGral){
+      const key=`${periodo}||${sala}||${tablero}||${circ}`;
+      if(!grales[key]) grales[key]={
+        _tabla:name,_salaGroup:salaGroup,_sala:sala,_tablero:tablero,
+        _circ:circ,_fase:'GRAL',_periodo:periodo,_tipo:tipo,_isGral:true,
+        _r:0,_s:0,_t:0,_comentarios:comentarios,_raw:row
+      };
+      if(fase==='R') grales[key]._r=corriente;
+      else if(fase==='S') grales[key]._s=corriente;
+      else if(fase==='T') grales[key]._t=corriente;
     } else {
-      row._r=parseFloat(row.corriente_a||0);
-      row._pot=calcPot(row);
-      result.push(row);
+      normales.push({
+        _tabla:name,_salaGroup:salaGroup,_sala:sala,_tablero:tablero,
+        _circ:circ,_fase:fase,_periodo:periodo,_tipo:tipo,_isGral:false,
+        _corriente:corriente,
+        _pot:calcPot(corriente,tipo,false,0,0,0),
+        _comentarios:comentarios,_raw:row
+      });
     }
   });
 
-  Object.values(gralMap).forEach(row=>{
-    const avg=(row._r+row._s+row._t)/3;
-    row._pot=+(avg*Math.sqrt(3)*380/1000).toFixed(4);
-    row.corriente_a=((row._r+row._s+row._t)/3).toFixed(3);
-    result.push(row);
+  const result=[...normales];
+  Object.values(grales).forEach(g=>{
+    const avg=(g._r+g._s+g._t)/3;
+    g._corriente=+avg.toFixed(3);
+    g._pot=calcPot(avg,'AC',true,g._r,g._s,g._t);
+    result.push(g);
   });
 
   return result;
@@ -359,54 +360,68 @@ function normalizeRows(raw,tabla){
 async function loadAll(){
   setLoad(true);showErr('');allRows=[];
   try{
-    const [tic,sm48,reso,ti]=await Promise.all([
-      fetchT('mediciones_tic'),fetchT('mediciones_sm48'),
-      fetchT('mediciones_reso'),fetchT('mediciones_salas_ti')
-    ]);
-    allRows=[
-      ...normalizeRows(tic,'mediciones_tic'),
-      ...normalizeRows(sm48,'mediciones_sm48'),
-      ...normalizeRows(reso,'mediciones_reso'),
-      ...normalizeRows(ti,'mediciones_salas_ti'),
-    ];
+    const results=await Promise.all(TABLES.map(t=>fetchT(t.name)));
+    results.forEach((raw,i)=>{
+      allRows.push(...normalizeRows(raw,TABLES[i]));
+    });
     document.getElementById('rcount').textContent=`${allRows.length.toLocaleString()} registros`;
     setSt('ok','Conectado');
-    rebuildFilters();applyFilters();
+    rebuildFilters();
+    applyFilters();
   }catch(e){showErr('Error: '+e.message);setSt('err','Error');}
   setLoad(false);
 }
 
 function rebuildFilters(){
-  const selT=document.getElementById('f-tabla').value;
-  const src=selT?allRows.filter(r=>r._tabla===selT):allRows;
+  const selS=document.getElementById('f-sala').value;
+  // Salas
+  const sEl=document.getElementById('f-sala');
+  const prevSala=sEl.value;
+  sEl.innerHTML='<option value="">Todas las salas</option>';
+  [...new Set(allRows.map(r=>r._sala))].sort().forEach(s=>{
+    const o=document.createElement('option');o.value=s;o.textContent=s;sEl.appendChild(o);
+  });
+  if(prevSala) sEl.value=prevSala;
+
+  const src=selS?allRows.filter(r=>r._sala===selS):allRows;
   const tEl=document.getElementById('f-tablero');
-  tEl.innerHTML='<option value="">Todos</option>';
+  tEl.innerHTML='<option value="">Todos los tableros</option>';
   [...new Set(src.map(r=>r._tablero))].sort().forEach(t=>{
     const o=document.createElement('option');o.value=t;o.textContent=t;tEl.appendChild(o);
   });
-  document.getElementById('f-circ').innerHTML='<option value="">Todos</option>';
+  document.getElementById('f-circ').innerHTML='<option value="">Todos los circuitos</option>';
 }
 
-function onTablaChange(){rebuildFilters();applyFilters();}
+function onSalaChange(){
+  const selS=document.getElementById('f-sala').value;
+  const tEl=document.getElementById('f-tablero');
+  tEl.innerHTML='<option value="">Todos los tableros</option>';
+  const src=selS?allRows.filter(r=>r._sala===selS):allRows;
+  [...new Set(src.map(r=>r._tablero))].sort().forEach(t=>{
+    const o=document.createElement('option');o.value=t;o.textContent=t;tEl.appendChild(o);
+  });
+  document.getElementById('f-circ').innerHTML='<option value="">Todos los circuitos</option>';
+  applyFilters();
+}
 
 function onTableroChange(){
-  const selT=document.getElementById('f-tabla').value;
+  const selS=document.getElementById('f-sala').value;
   const selTb=document.getElementById('f-tablero').value;
   const cEl=document.getElementById('f-circ');
-  cEl.innerHTML='<option value="">Todos</option>';
-  allRows.filter(r=>(!selT||r._tabla===selT)&&(!selTb||r._tablero===selTb))
+  cEl.innerHTML='<option value="">Todos los circuitos</option>';
+  allRows.filter(r=>(!selS||r._sala===selS)&&(!selTb||r._tablero===selTb))
     .map(r=>r._circ).filter((v,i,a)=>a.indexOf(v)===i).sort()
     .forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;cEl.appendChild(o);});
   applyFilters();
 }
 
 function applyFilters(){
-  const t=document.getElementById('f-tabla').value;
+  const s=document.getElementById('f-sala').value;
   const tb=document.getElementById('f-tablero').value;
   const ci=document.getElementById('f-circ').value;
-  const nz=document.getElementById('f-nonzero').value==='1';
+  const nz=document.getElementById('f-nz').value==='1';
   filteredRows=allRows.filter(r=>
-    (!t||r._tabla===t)&&(!tb||r._tablero===tb)&&(!ci||r._circ===ci)&&(!nz||parseFloat(r.corriente_a||0)>0)
+    (!s||r._sala===s)&&(!tb||r._tablero===tb)&&(!ci||r._circ===ci)&&(!nz||r._corriente>0)
   );
   renderAll();
 }
@@ -415,26 +430,23 @@ function setVista(v,btn){curVista=v;document.querySelectorAll('.vbtn').forEach(b
 function switchTab(tab,btn){curTab=tab;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderAll();}
 
 function renderAll(){
-  if(!filteredRows.length){clearMetrics();return;}
-  updateMetrics();renderMain();renderSala();renderPie();renderDetail();renderTable();
+  if(!filteredRows.length){['m-pot','m-cor','m-top','m-cnt'].forEach(id=>document.getElementById(id).textContent='—');return;}
+  updateMetrics();renderMain();renderSala();renderPie();renderDetail();renderAcDc();renderTable();
 }
 
-function clearMetrics(){['m-pot','m-cor','m-top','m-cnt'].forEach(id=>document.getElementById(id).textContent='—');}
+// Filas sin circuitos generales (GRAL/BP) para cálculos de suma
+function noGral(rows){ return rows.filter(r=>!r._isGral); }
 
 function getPeriodos(){return[...new Set(filteredRows.map(r=>r._periodo))].sort();}
-
-function sum(rows,f){return rows.reduce((s,r)=>s+parseFloat(r[f]||0),0);}
+function sumF(rows,f){return rows.reduce((s,r)=>s+parseFloat(r[f]||0),0);}
 
 function updateMetrics(){
   const ps=getPeriodos(),last=ps[ps.length-1];
-  const lr=filteredRows.filter(r=>r._periodo===last);
-  const potTotal=lr.reduce((s,r)=>s+r._pot,0);
-  document.getElementById('m-pot').textContent=potTotal.toFixed(2)+' kW';
-  const active=lr.filter(r=>parseFloat(r.corriente_a||0)>0);
-  const corrAvg=active.length?sum(active,'corriente_a')/active.length:0;
-  document.getElementById('m-cor').textContent=corrAvg.toFixed(1)+' A';
-  const byTb={};
-  lr.forEach(r=>{byTb[r._tablero]=(byTb[r._tablero]||0)+r._pot;});
+  const lr=noGral(filteredRows.filter(r=>r._periodo===last));
+  document.getElementById('m-pot').textContent=lr.reduce((s,r)=>s+r._pot,0).toFixed(2)+' kW';
+  const act=lr.filter(r=>r._corriente>0);
+  document.getElementById('m-cor').textContent=(act.length?sumF(act,'_corriente')/act.length:0).toFixed(1)+' A';
+  const byTb={};lr.forEach(r=>{byTb[r._tablero]=(byTb[r._tablero]||0)+r._pot;});
   const top=Object.entries(byTb).sort((a,b)=>b[1]-a[1])[0];
   if(top){document.getElementById('m-top').textContent=top[0];document.getElementById('m-tops').textContent=top[1].toFixed(2)+' kW';}
   document.getElementById('m-cnt').textContent=filteredRows.length.toLocaleString();
@@ -442,49 +454,55 @@ function updateMetrics(){
 }
 
 function mkLegend(id,items){document.getElementById(id).innerHTML=items.map((it,i)=>`<span class="li"><span class="ls" style="background:${it.c||PAL[i%PAL.length]}"></span>${it.l}</span>`).join('');}
-
 function mkChart(id,cfg,ref){if(ref)ref.destroy();return new Chart(document.getElementById(id).getContext('2d'),cfg);}
 
-const gOpts=(yLabel)=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label||''}: ${(ctx.parsed.y??ctx.parsed.x??0).toFixed(2)} ${yLabel}`}}},scales:{x:{ticks:{color:'#7a8299',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#7a8299',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},title:{display:true,text:yLabel,color:'#4a5168',font:{size:11}}}}});
+const gOpts=(yLabel,horizontal)=>({
+  responsive:true,maintainAspectRatio:false,
+  indexAxis:horizontal?'y':'x',
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label||''}: ${(ctx.parsed.y!==undefined&&!horizontal?ctx.parsed.y:ctx.parsed.x??ctx.parsed.y??0).toFixed(2)} ${yLabel}`}}},
+  scales:{
+    x:{ticks:{color:'#7a8299',font:{size:11},maxRotation:35},grid:{color:'rgba(255,255,255,0.04)'}},
+    y:{ticks:{color:'#7a8299',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},title:{display:!horizontal,text:yLabel,color:'#4a5168',font:{size:11}}}
+  }
+});
 
 function renderMain(){
   const ps=getPeriodos();
-  const fld=curVista==='pot'?'_pot':'corriente_a';
+  const fld=curVista==='pot'?'_pot':'_corriente';
   const unit=curVista==='pot'?'kW':'A';
-  let labels,datasets;
 
   if(curTab==='evol'){
-    const tableros=[...new Set(filteredRows.map(r=>r._tablero))].sort().slice(0,10);
-    labels=ps;
-    datasets=tableros.map((t,i)=>({
+    const keys=[...new Set(noGral(filteredRows).map(r=>r._tablero))].sort().slice(0,10);
+    const datasets=keys.map((t,i)=>({
       label:t,
-      data:ps.map(p=>+filteredRows.filter(r=>r._tablero===t&&r._periodo===p).reduce((s,r)=>s+parseFloat(r[fld]||0),0).toFixed(2)),
+      data:ps.map(p=>+noGral(filteredRows).filter(r=>r._tablero===t&&r._periodo===p).reduce((s,r)=>s+r[fld],0).toFixed(2)),
       borderColor:PAL[i%PAL.length],backgroundColor:PAL[i%PAL.length]+'22',tension:0.35,fill:false,pointRadius:3
     }));
-    mkLegend('lg-main',tableros.map((t,i)=>({l:t,c:PAL[i%PAL.length]})));
+    mkLegend('lg-main',keys.map((t,i)=>({l:t,c:PAL[i%PAL.length]})));
     document.getElementById('msub').textContent=`${unit} por tablero en el tiempo`;
-    cMain=mkChart('cm',{type:'line',data:{labels,datasets},options:gOpts(unit)},cMain);
+    cMain=mkChart('cm',{type:'line',data:{labels:ps,datasets},options:gOpts(unit)},cMain);
   } else {
     const last=ps[ps.length-1];
-    const lr=filteredRows.filter(r=>r._periodo===last);
-    let keys,getRows;
-    if(curTab==='salas'){keys=[...new Set(lr.map(r=>r._salaGroup||r._sala))].sort();getRows=(k,r)=>r._salaGroup===k||r._sala===k;}
-    else if(curTab==='tableros'){keys=[...new Set(lr.map(r=>r._tablero))].sort();getRows=(k,r)=>r._tablero===k;}
-    else{keys=[...new Set(lr.map(r=>r._circ))].sort().slice(0,20);getRows=(k,r)=>r._circ===k;}
-    labels=keys;
-    const data=keys.map(k=>+lr.filter(r=>getRows(k,r)).reduce((s,r)=>s+parseFloat(r[fld]||0),0).toFixed(2));
-    datasets=[{label:unit,data,backgroundColor:keys.map((_,i)=>PAL[i%PAL.length]),borderWidth:0,borderRadius:4}];
-    mkLegend('lg-main',keys.map((k,i)=>({l:k,c:PAL[i%PAL.length]})));
+    const lr=noGral(filteredRows.filter(r=>r._periodo===last));
+    let keys,getK;
+    if(curTab==='salas'){keys=[...new Set(lr.map(r=>r._sala))].sort();getK=(k,r)=>r._sala===k;}
+    else if(curTab==='tableros'){keys=[...new Set(lr.map(r=>r._tablero))].sort();getK=(k,r)=>r._tablero===k;}
+    else{keys=[...new Set(lr.map(r=>r._circ))].sort().slice(0,20);getK=(k,r)=>r._circ===k;}
+    const dataRaw=keys.map(k=>+lr.filter(r=>getK(k,r)).reduce((s,r)=>s+r[fld],0).toFixed(2));
+    const sorted=keys.map((k,i)=>({k,v:dataRaw[i]})).sort((a,b)=>b.v-a.v);
+    const sortedKeys=sorted.map(x=>x.k), sortedData=sorted.map(x=>x.v);
+    mkLegend('lg-main',sortedKeys.map((k,i)=>({l:k,c:PAL[i%PAL.length]})));
     document.getElementById('msub').textContent=`${unit} — ${last}`;
-    cMain=mkChart('cm',{type:'bar',data:{labels,datasets},options:gOpts(unit)},cMain);
+    cMain=mkChart('cm',{type:'bar',data:{labels:sortedKeys,datasets:[{label:unit,data:sortedData,backgroundColor:sortedKeys.map((_,i)=>PAL[i%PAL.length]),borderWidth:0,borderRadius:4}]},options:gOpts(unit)},cMain);
   }
 }
 
 function renderSala(){
   const ps=getPeriodos(),last=ps[ps.length-1];
-  const lr=filteredRows.filter(r=>r._periodo===last);
-  const salas=[...new Set(lr.map(r=>r._salaGroup||r._sala))].sort();
-  const data=salas.map(s=>+lr.filter(r=>(r._salaGroup||r._sala)===s).reduce((a,r)=>a+r._pot,0).toFixed(2));
+  const lr=noGral(filteredRows.filter(r=>r._periodo===last));
+  const salasRaw=[...new Set(lr.map(r=>r._sala))];
+  const salasSorted=salasRaw.map(s=>({s,v:+lr.filter(r=>r._sala===s).reduce((a,r)=>a+r._pot,0).toFixed(2)})).sort((a,b)=>b.v-a.v);
+  const salas=salasSorted.map(x=>x.s), data=salasSorted.map(x=>x.v);
   document.getElementById('sub-sala').textContent=last||'—';
   mkLegend('lg-sala',salas.map((s,i)=>({l:s,c:PAL[i%PAL.length]})));
   cSala=mkChart('cs',{type:'bar',data:{labels:salas,datasets:[{label:'kW',data,backgroundColor:salas.map((_,i)=>PAL[i%PAL.length]),borderWidth:0,borderRadius:5}]},options:gOpts('kW')},cSala);
@@ -492,9 +510,9 @@ function renderSala(){
 
 function renderPie(){
   const ps=getPeriodos(),last=ps[ps.length-1];
-  const lr=filteredRows.filter(r=>r._periodo===last);
-  const salas=[...new Set(lr.map(r=>r._salaGroup||r._sala))].sort();
-  const data=salas.map(s=>+lr.filter(r=>(r._salaGroup||r._sala)===s).reduce((a,r)=>a+r._pot,0).toFixed(2));
+  const lr=noGral(filteredRows.filter(r=>r._periodo===last));
+  const salas=[...new Set(lr.map(r=>r._sala))].sort();
+  const data=salas.map(s=>+lr.filter(r=>r._sala===s).reduce((a,r)=>a+r._pot,0).toFixed(2));
   const total=data.reduce((a,b)=>a+b,0);
   document.getElementById('sub-pie').textContent=last||'—';
   mkLegend('lg-pie',salas.map((s,i)=>({l:`${s} (${total>0?(data[i]/total*100).toFixed(1):0}%)`,c:PAL[i%PAL.length]})));
@@ -503,10 +521,10 @@ function renderPie(){
 
 function renderDetail(){
   const ps=getPeriodos(),last=ps[ps.length-1];
-  const lr=filteredRows.filter(r=>r._periodo===last);
-  const circs=[...new Set(lr.map(r=>r._circ))].sort().slice(0,25);
-  const potData=circs.map(c=>+lr.filter(r=>r._circ===c).reduce((s,r)=>s+r._pot,0).toFixed(2));
-  const corData=circs.map(c=>+lr.filter(r=>r._circ===c).reduce((s,r)=>s+parseFloat(r.corriente_a||0),0).toFixed(2));
+  const lr=noGral(filteredRows.filter(r=>r._periodo===last));
+  const circsRaw=[...new Set(lr.map(r=>r._circ))];
+  const circsSorted=circsRaw.map(c=>({c,pot:+lr.filter(r=>r._circ===c).reduce((s,r)=>s+r._pot,0).toFixed(2),cor:+lr.filter(r=>r._circ===c).reduce((s,r)=>s+r._corriente,0).toFixed(2)})).sort((a,b)=>b.pot-a.pot).slice(0,25);
+  const circs=circsSorted.map(x=>x.c), potData=circsSorted.map(x=>x.pot), corData=circsSorted.map(x=>x.cor);
   document.getElementById('sub-det').textContent=last||'—';
   mkLegend('lg-det',[{l:'Potencia kW',c:PAL[0]},{l:'Corriente A',c:PAL[2]}]);
   const h=Math.max(280,circs.length*36+80);
@@ -514,33 +532,57 @@ function renderDetail(){
   cDet=mkChart('cd',{type:'bar',data:{labels:circs,datasets:[
     {label:'kW',data:potData,backgroundColor:PAL[0],borderWidth:0,borderRadius:3,yAxisID:'y'},
     {label:'A',data:corData,backgroundColor:PAL[2],borderWidth:0,borderRadius:3,yAxisID:'y2'}
-  ]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x.toFixed(2)}`}}},scales:{y:{ticks:{color:'#7a8299',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},y2:{display:false},x:{ticks:{color:'#7a8299',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}}}}},cDet);
+  ]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x.toFixed(2)}`}}},
+    scales:{y:{ticks:{color:'#7a8299',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
+      y2:{display:false},x:{ticks:{color:'#7a8299',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}}}}},cDet);
 }
 
 function renderTable(){
   const rows=filteredRows.slice().sort((a,b)=>b._periodo.localeCompare(a._periodo)).slice(0,400);
   const tb=document.getElementById('tbody');
-  if(!rows.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--hint);">Sin resultados</td></tr>';return;}
+  if(!rows.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--hint);">Sin resultados</td></tr>';return;}
   tb.innerHTML=rows.map(r=>{
-    const isDC=r.tipo_corriente==='DC';
-    const isGral=r.es_circuito_general===true;
-    const badge=isDC?'<span class="badge bdc">DC</span>':isGral?'<span class="badge bgr">GRAL</span>':'<span class="badge bac">AC</span>';
+    const badge=r._tipo==='DC'?'<span class="badge bdc">DC</span>':r._isGral?'<span class="badge bgr">GRAL</span>':'<span class="badge bac">AC</span>';
     return `<tr>
       <td>${r._sala}</td><td>${r._tablero}</td><td>${r._circ}</td><td>${r._fase}</td>
       <td>${badge}</td><td>${r._periodo}</td>
-      <td class="num">${parseFloat(r.corriente_a||0).toFixed(3)}</td>
+      <td class="num">${r._corriente.toFixed(3)}</td>
       <td class="num pv">${r._pot.toFixed(3)}</td>
+      <td class="com-cell" title="${r._comentarios||''}">${r._comentarios||''}</td>
     </tr>`;
   }).join('');
 }
 
+let cAcDc=null, cAcDc2=null;
+
+function renderAcDc(){
+  const ps=getPeriodos(), last=ps[ps.length-1];
+  const lr=noGral(filteredRows.filter(r=>r._periodo===last));
+  const acRows=lr.filter(r=>r._tipo==='AC');
+  const dcRows=lr.filter(r=>r._tipo==='DC');
+  const acPot=acRows.reduce((s,r)=>s+r._pot,0);
+  const dcPot=dcRows.reduce((s,r)=>s+r._pot,0);
+
+  document.getElementById('sub-acdc').textContent=last||'—';
+  mkLegend('lg-acdc',[{l:`AC: ${acPot.toFixed(2)} kW`,c:PAL[0]},{l:`DC: ${dcPot.toFixed(2)} kW`,c:PAL[2]}]);
+  cAcDc=mkChart('cacdc',{type:'doughnut',data:{labels:['AC','DC'],datasets:[{data:[acPot,dcPot],backgroundColor:[PAL[0],PAL[2]],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.parsed.toFixed(2)} kW (${(ctx.parsed/(acPot+dcPot)*100).toFixed(1)}%)`}}},cutout:'58%'}},cAcDc);
+
+  // Evolución AC vs DC en el tiempo
+  document.getElementById('sub-acdc2').textContent='kW por período';
+  mkLegend('lg-acdc2',[{l:'AC',c:PAL[0]},{l:'DC',c:PAL[2]}]);
+  const acEvol=ps.map(p=>+noGral(filteredRows.filter(r=>r._periodo===p&&r._tipo==='AC')).reduce((s,r)=>s+r._pot,0).toFixed(2));
+  const dcEvol=ps.map(p=>+noGral(filteredRows.filter(r=>r._periodo===p&&r._tipo==='DC')).reduce((s,r)=>s+r._pot,0).toFixed(2));
+  cAcDc2=mkChart('cacdc2',{type:'line',data:{labels:ps,datasets:[
+    {label:'AC',data:acEvol,borderColor:PAL[0],backgroundColor:PAL[0]+'22',tension:0.35,fill:true,pointRadius:3},
+    {label:'DC',data:dcEvol,borderColor:PAL[2],backgroundColor:PAL[2]+'22',tension:0.35,fill:true,pointRadius:3}
+  ]},options:gOpts('kW')},cAcDc2);
+}
+
 function exportCSV(){
   const rows=filteredRows.slice().sort((a,b)=>b._periodo.localeCompare(a._periodo));
-  const hdr='Sala,Tablero,Circuito,Fase,Tipo,Período,Corriente_A,Potencia_kW';
-  const lines=rows.map(r=>{
-    const tipo=r.tipo_corriente==='DC'?'DC':r.es_circuito_general?'GRAL':'AC';
-    return[r._sala,r._tablero,r._circ,r._fase,tipo,r._periodo,parseFloat(r.corriente_a||0).toFixed(3),r._pot.toFixed(4)].join(',');
-  });
+  const hdr='Sala,Tablero,Circuito,Fase,Tipo,Período,Corriente_A,Potencia_kW,Comentarios';
+  const lines=rows.map(r=>[r._sala,r._tablero,r._circ,r._fase,r._tipo,r._periodo,r._corriente.toFixed(3),r._pot.toFixed(4),`"${(r._comentarios||'').replace(/"/g,'""')}"`].join(','));
   const blob=new Blob([[hdr,...lines].join('\n')],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`tableros_${new Date().toISOString().slice(0,10)}.csv`;a.click();
