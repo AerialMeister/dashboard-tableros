@@ -313,17 +313,19 @@ function normalizeRows(raw, td){
       else if(fase==='T') gralMap[key]._t=I;
     } else {
       // Circuitos normales: cada fila es monofásica independiente
+      // Factor de potencia: 1 para mediciones_salas_ti, 0.9 para el resto
+      const fp=name==='mediciones_salas_ti'?1:0.9;
       const I2=I;
       normales.push({
         _tabla:name,_salaGroup:salaGroup,
         _sala:sala,_tablero:tablero,
-        _circ:`${circ}-${fase}`, // incluir fase en ID para distinguir
+        _circ:`${circ}-${fase}`,
         _periodo:periodo,_tipo:'AC',_isGral:false,
         _r:fase==='R'?I2:null,
         _s:fase==='S'?I2:null,
         _t:fase==='T'?I2:null,
         _corriente:I2,
-        _pot:+(I2*0.9*220/1000).toFixed(4),
+        _pot:+(I2*fp*220/1000).toFixed(4),
         _comentarios:comentarios
       });
     }
