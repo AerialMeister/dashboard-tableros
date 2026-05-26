@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="es"><!-- dashboard-v5 -->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Tableros Eléctricos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{--bg:#0e1117;--surface:#161b27;--surface2:#1d2435;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--text:#e8eaf0;--muted:#7a8299;--hint:#4a5168;--accent:#3b82f6;--accent-dim:rgba(59,130,246,0.15);--accent-glow:rgba(59,130,246,0.3);--amber:#f59e0b;--amber-dim:rgba(245,158,11,0.15);--green:#10b981;--green-dim:rgba(16,185,129,0.12);--red:#ef4444;--red-dim:rgba(239,68,68,0.12);--purple:#8b5cf6;--font-d:'Syne',sans-serif;--font-m:'DM Mono',monospace;--r:10px;--rs:6px;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-m);background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;line-height:1.6;}
+.header{border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0;z-index:100;}
+.hbrand{display:flex;align-items:center;gap:12px;}
+.hicon{width:32px;height:32px;background:var(--accent-dim);border:1px solid var(--accent-glow);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.htitle{font-family:var(--font-d);font-size:17px;font-weight:700;letter-spacing:-0.02em;}
+.hsub{font-size:11px;color:var(--muted);}
+.hstatus{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--hint);transition:background 0.3s;}
+.sdot.ok{background:var(--green);box-shadow:0 0 6px var(--green);}
+.sdot.err{background:var(--red);}
+.main{max-width:1280px;margin:0 auto;padding:24px 28px;}
+input[type=month],select{background:var(--bg);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:var(--font-m);font-size:12px;padding:7px 11px;width:100%;transition:border-color 0.2s;outline:none;}
+input:focus,select:focus{border-color:var(--accent);}
+select option{background:var(--surface2);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:var(--rs);font-family:var(--font-m);font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;}
+.btn-p{background:var(--accent);color:#fff;}.btn-p:hover{background:#2563eb;}.btn-p:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border2);}.btn-g:hover{border-color:var(--accent);color:var(--accent);}
+.err-bar{background:var(--red-dim);border:1px solid var(--red);border-radius:var(--rs);color:var(--red);padding:8px 14px;font-size:12px;margin-bottom:14px;display:none;}
+.prow{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.prow label{font-size:11px;color:var(--muted);white-space:nowrap;}
+.prow input[type=month]{width:140px;}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;}
+.fg label{display:block;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px;}
+.mc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--r) var(--r) 0 0;}
+.mc.blue::before{background:var(--accent);}.mc.amber::before{background:var(--amber);}.mc.green::before{background:var(--green);}.mc.purple::before{background:var(--purple);}
+.mlabel{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;}
+.mval{font-family:var(--font-d);font-size:24px;font-weight:700;letter-spacing:-0.02em;line-height:1;}
+.mc.blue .mval{color:var(--accent);}.mc.amber .mval{color:var(--amber);}.mc.green .mval{color:var(--green);}.mc.purple .mval{color:var(--purple);}
+.msub{font-size:10px;color:var(--hint);margin-top:4px;}
+.cpanel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:14px;}
+.cph{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.cptitle{font-family:var(--font-d);font-size:14px;font-weight:600;}
+.cpsub{font-size:11px;color:var(--muted);margin-top:2px;}
+.tabs{display:flex;gap:2px;margin-bottom:14px;background:var(--bg);border-radius:var(--rs);padding:3px;width:fit-content;}
+.tab{padding:5px 13px;border-radius:4px;font-family:var(--font-m);font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;background:transparent;border:none;transition:all 0.15s;}
+.tab.active{background:var(--surface2);color:var(--text);}.tab:hover:not(.active){color:var(--text);}
+.vrow{display:flex;gap:5px;}
+.vbtn{padding:3px 11px;font-family:var(--font-m);font-size:10px;border-radius:20px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);transition:all 0.15s;}
+.vbtn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;font-size:11px;color:var(--muted);}
+.li{display:flex;align-items:center;gap:4px;}.ls{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:780px){.two{grid-template-columns:1fr;}}
+.tpanel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;}
+.tw{overflow-x:auto;margin-top:10px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);font-weight:500;padding:6px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+tbody td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--surface2);}
+.num{text-align:right;font-variant-numeric:tabular-nums;}.pv{color:var(--accent);font-weight:500;}
+.badge{display:inline-block;font-size:9px;font-weight:500;padding:2px 7px;border-radius:20px;letter-spacing:0.05em;text-transform:uppercase;}
+.bdc{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.25);}
+.bac{background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-glow);}
+.bgr{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,0.25);}
+.sdiv{font-family:var(--font-d);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--hint);margin-bottom:10px;margin-top:4px;display:flex;align-items:center;gap:10px;}
+.sdiv::after{content:'';flex:1;height:1px;background:var(--border);}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:16px;}
+.fc{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;}
+.fct{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:5px;}
+.feq{font-family:var(--font-m);font-size:11px;color:var(--accent);}
+.fdesc{font-size:10px;color:var(--hint);margin-top:3px;}
+.com-cell{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--hint);font-size:11px;}
+::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="hbrand">
+    <div class="hicon">⚡</div>
+    <div><div class="htitle">Tableros Eléctricos</div><div class="hsub">TIC · SM48 · RESO · Salas TI</div></div>
+  </div>
+  <div class="hstatus"><div class="sdot" id="sdot"></div><span id="stxt">Sin conexión</span></div>
+</header>
+
+<main class="main">
+  <div id="err-bar" class="err-bar"></div>
+
+  <div class="prow">
+    <label>Desde</label><input type="month" id="desde"/>
+    <label>hasta</label><input type="month" id="hasta"/>
+    <button class="btn btn-p" id="lbtn" onclick="loadAll()">
+      <div class="spinner" id="spin"></div><span id="llbl">↻ Cargar datos</span>
+    </button>
+    <span id="rcount" style="font-size:11px;color:var(--hint);"></span>
+  </div>
+
+  <div class="sdiv">Fórmulas de potencia activa</div>
+  <div class="fgrid">
+    <div class="fc"><div class="fct">DC — Solo SM48</div><div class="feq">P = I × 53 / 1000</div><div class="fdesc">Resultado en kW</div></div>
+    <div class="fc"><div class="fct">AC Monofásico</div><div class="feq">P = I × 0.9 × 220 / 1000</div><div class="fdesc">Resultado en kW</div></div>
+    <div class="fc"><div class="fct">Trifásico (TIC, RESO, Salas TI)</div><div class="feq">P = AVG(R,S,T) × √3 × 380 / 1000</div><div class="fdesc">Todos los circuitos con fases</div></div>
+  </div>
+
+  <div class="sdiv">Filtros</div>
+  <div class="filters">
+    <div class="fg"><label>Sala</label>
+      <select id="f-sala" onchange="onSalaChange()"><option value="">Todas las salas</option></select>
+    </div>
+    <div class="fg"><label>Tablero</label>
+      <select id="f-tablero" onchange="onTableroChange()"><option value="">Todos los tableros</option></select>
+    </div>
+    <div class="fg"><label>Circuito</label>
+      <select id="f-circ" onchange="applyFilters()"><option value="">Todos los circuitos</option></select>
+    </div>
+    <div class="fg"><label>Solo con medición</label>
+      <select id="f-nz" onchange="applyFilters()">
+        <option value="0">Todos los circuitos</option>
+        <option value="1">Solo corriente &gt; 0</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="sdiv">Indicadores — último período por sala</div>
+  <div class="metrics">
+    <div class="mc blue"><div class="mlabel">Potencia total</div><div class="mval" id="m-pot">—</div><div class="msub">kW (excl. GRAL/BP)</div></div>
+    <div class="mc amber"><div class="mlabel">Corriente promedio</div><div class="mval" id="m-cor">—</div><div class="msub">Amperes (circ. activos)</div></div>
+    <div class="mc green"><div class="mlabel">Tablero mayor consumo</div><div class="mval" id="m-top" style="font-size:15px;padding-top:5px;">—</div><div class="msub" id="m-tops">—</div></div>
+    <div class="mc purple"><div class="mlabel">Registros / períodos</div><div class="mval" id="m-cnt">—</div><div class="msub" id="m-cnts">meses</div></div>
+  </div>
+
+  <div class="sdiv">Análisis gráfico</div>
+  <div class="cpanel">
+    <div class="cph">
+      <div><div class="cptitle">Evolución y comparativa</div><div class="cpsub" id="msub">Carga datos para visualizar</div></div>
+      <div class="vrow">
+        <button class="vbtn active" onclick="setVista('pot',this)">kW</button>
+        <button class="vbtn" onclick="setVista('cor',this)">A</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('evol',this)">Evolución</button>
+      <button class="tab" onclick="switchTab('salas',this)">Por sala</button>
+      <button class="tab" onclick="switchTab('tableros',this)">Por tablero</button>
+      <button class="tab" onclick="switchTab('circs',this)">Por circuito</button>
+    </div>
+    <div id="lg-main" class="legend"></div>
+    <div style="position:relative;width:100%;height:340px;"><canvas id="cm"></canvas></div>
+  </div>
+
+  <div class="two">
+    <div class="cpanel" style="margin-bottom:0">
+      <div class="cph"><div><div class="cptitle">Potencia por sala</div><div class="cpsub" id="sub-sala">último período de cada sala</div></div></div>
+      <div id="lg-sala" class="legend"></div>
+      <div style="position:relative;width:100%;height:260px;"><canvas id="cs"></canvas></div>
+    </div>
+    <div class="cpanel" style="margin-bottom:0">
+      <div class="cph"><div><div class="cptitle">Distribución %</div><div class="cpsub" id="sub-pie">último período de cada sala</div></div></div>
+      <div id="lg-pie" class="legend"></div>
+      <div style="position:relative;width:100%;height:260px;"><canvas id="cp"></canvas></div>
+    </div>
+  </div>
+
+  <div class="cpanel" style="margin-top:14px;">
+    <div class="cph"><div><div class="cptitle">Detalle por circuito</div><div class="cpsub" id="sub-det">último período</div></div></div>
+    <div id="lg-det" class="legend"></div>
+    <div style="position:relative;width:100%;" id="det-wrap"><canvas id="cd"></canvas></div>
+  </div>
+
+  <div class="two" style="margin-top:14px;">
+    <div class="cpanel" style="margin-bottom:0">
+      <div class="cph"><div><div class="cptitle">Potencia AC vs DC</div><div class="cpsub" id="sub-acdc">último período por sala</div></div></div>
+      <div id="lg-acdc" class="legend"></div>
+      <div style="position:relative;width:100%;height:260px;"><canvas id="cacdc"></canvas></div>
+    </div>
+    <div class="cpanel" style="margin-bottom:0">
+      <div class="cph"><div><div class="cptitle">Evolución AC vs DC</div><div class="cpsub">kW en el tiempo</div></div></div>
+      <div id="lg-acdc2" class="legend"></div>
+      <div style="position:relative;width:100%;height:260px;"><canvas id="cacdc2"></canvas></div>
+    </div>
+  </div>
+
+  <div class="tpanel" style="margin-top:14px;">
+    <div class="cph" style="margin-bottom:0;">
+      <div><div class="cptitle">Tabla de mediciones</div><div class="cpsub">Máx 400 filas · período desc · excluye GRAL/BP</div></div>
+      <button class="btn btn-g" onclick="exportCSV()" style="font-size:11px;">↓ CSV</button>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Sala</th><th>Tablero</th><th>Circuito</th><th>Tipo</th>
+          <th>Período</th><th class="num">I_R (A)</th><th class="num">I_S (A)</th><th class="num">I_T (A)</th><th class="num">I_avg (A)</th><th class="num">Potencia kW</th><th>Comentarios</th>
+        </tr></thead>
+        <tbody id="tbody"><tr><td colspan="11" style="text-align:center;padding:40px;color:var(--hint);">Carga datos para visualizar</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+const SB_URL='https://deyucjwqkttdkuivzele.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRleXVjandxa3R0ZGt1aXZ6ZWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQwOTYsImV4cCI6MjA5NTI5MDA5Nn0.zzkXBAXCTJ8Np_2l5mqmIH1VO9uxj_ISMS7e0u39RbE';
+const PAL=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316','#ec4899','#84cc16','#a78bfa','#f43f5e','#14b8a6'];
+let allRows=[],filteredRows=[],cMain=null,cSala=null,cPie=null,cDet=null,cAcDc=null,cAcDc2=null;
+let curTab='evol',curVista='pot';
+
+// Definición de tablas — estructura homologada
+const TABLES=[
+  {name:'mediciones_tic',    salaGroup:'TIC',      circCol:'cto'},
+  {name:'mediciones_sm48',   salaGroup:'SM48',     circCol:'sala'},
+  {name:'mediciones_reso',   salaGroup:'RESO',     circCol:'cto'},
+  {name:'mediciones_salas_ti',salaGroup:'Salas TI',circCol:'nuevo_tag'},
+];
+
+(function init(){
+  const now=new Date();
+  const y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0');
+  document.getElementById('desde').value=`${y}-01`;
+  document.getElementById('hasta').value=`${y}-${m}`;
+  window.addEventListener('DOMContentLoaded',loadAll);
+})();
+
+function showErr(msg){const b=document.getElementById('err-bar');if(!b)return;b.textContent=msg;b.style.display=msg?'block':'none';}
+function setSt(cls,txt){document.getElementById('sdot').className='sdot '+cls;document.getElementById('stxt').textContent=txt;}
+function setLoad(v){document.getElementById('spin').style.display=v?'block':'none';document.getElementById('lbtn').disabled=v;document.getElementById('llbl').textContent=v?'Cargando…':'↻ Cargar datos';}
+
+async function fetchT(table){
+  const desde=document.getElementById('desde').value;
+  const hasta=document.getElementById('hasta').value;
+  let url=`${SB_URL}/rest/v1/${table}?select=*&limit=10000`;
+  if(desde) url+=`&periodo=gte.${desde}-01`;
+  if(hasta) url+=`&periodo=lte.${hasta}-01`;
+  const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json'}});
+  if(!r.ok) throw new Error(`${table}: HTTP ${r.status}`);
+  return r.json();
+}
+
+// ── NORMALIZACIÓN ──────────────────────────────────────────────
+// SM48: una fila por tablero, fórmula DC = I * 53 / 1000
+// TIC, RESO, Salas TI: múltiples filas por circuito (una por fase R/S/T)
+//   → agrupar por (periodo, sala, tablero, circuito)
+//   → potencia = AVG(R,S,T) * sqrt(3) * 380 / 1000
+//   → GRAL/BP (es_circuito_general=true) se marcan pero NO se excluyen del array
+//     (se excluyen en los cálculos de suma con noGral())
+
+function normalizeRows(raw, td){
+  const {name, salaGroup, circCol}=td;
+
+  // ── SM48 ──
+  if(name==='mediciones_sm48'){
+    return raw.map(row=>{
+      const I=parseFloat(row.corriente_a||0);
+      return {
+        _tabla:name, _salaGroup:'SM48',
+        _sala:row.sala||'SM48',
+        _tablero:row.tablero||'—',
+        _circ:row.sala||'—',
+        _periodo:(row.periodo||'').slice(0,7),
+        _tipo:row.tipo_corriente||'DC',
+        _isGral:false,
+        _r:I,_s:0,_t:0,_corriente:I,
+        _pot:+(I*53/1000).toFixed(4),
+        _comentarios:''
+      };
+    });
+  }
+
+  // ── TIC / RESO / Salas TI ──
+  // Paso 1: agrupar filas por clave única (periodo+sala+tablero+circuito)
+  const map={};
+  raw.forEach(row=>{
+    const periodo=(row.periodo||'').slice(0,7);
+    const sala=row.sala||salaGroup;
+    const tablero=row.tablero||'—';
+    const circ=row[circCol]||row.cto||'—';
+    const fase=(row.fase||'').toUpperCase();
+    const I=parseFloat(row.corriente_a||0);
+    const isGral=row.es_circuito_general===true;
+    const key=`${periodo}||${sala}||${tablero}||${circ}`;
+
+    if(!map[key]){
+      map[key]={
+        _tabla:name,_salaGroup:salaGroup,
+        _sala:sala,_tablero:tablero,_circ:circ,
+        _periodo:periodo,_tipo:'AC',_isGral:isGral,
+        _r:null,_s:null,_t:null,
+        _comentarios:row.comentarios||''
+      };
+    }
+    if(fase==='R') map[key]._r=I;
+    else if(fase==='S') map[key]._s=I;
+    else if(fase==='T') map[key]._t=I;
+    else map[key]._r=I; // sin fase → tratar como R
+    if(row.comentarios) map[key]._comentarios=row.comentarios;
+  });
+
+  // Paso 2: calcular potencia trifásica para cada circuito agrupado
+  return Object.values(map).map(c=>{
+    const r=c._r||0, s=c._s||0, t=c._t||0;
+    // contar fases con dato real (no null)
+    const n=[c._r,c._s,c._t].filter(v=>v!==null).length||1;
+    const avg=(r+s+t)/n;
+    c._corriente=+avg.toFixed(3);
+    c._pot=+(avg*Math.sqrt(3)*380/1000).toFixed(4);
+    return c;
+  });
+}
+
+// ── CARGA ──────────────────────────────────────────────────────
+async function loadAll(){
+  setLoad(true);showErr('');allRows=[];
+  try{
+    const results=await Promise.all(TABLES.map(t=>fetchT(t.name)));
+    results.forEach((raw,i)=>allRows.push(...normalizeRows(raw,TABLES[i])));
+    document.getElementById('rcount').textContent=`${allRows.length.toLocaleString()} registros`;
+    setSt('ok','Conectado');
+    rebuildFilters();
+    applyFilters();
+  }catch(e){showErr('Error: '+e.message);setSt('err','Error');}
+  setLoad(false);
+}
+
+// ── FILTROS ────────────────────────────────────────────────────
+function rebuildFilters(){
+  const sEl=document.getElementById('f-sala');
+  const prev=sEl.value;
+  sEl.innerHTML='<option value="">Todas las salas</option>';
+  [...new Set(allRows.map(r=>r._sala))].sort().forEach(s=>{
+    const o=document.createElement('option');o.value=s;o.textContent=s;sEl.appendChild(o);
+  });
+  if(prev) sEl.value=prev;
+  populateTableros();
+}
+
+function populateTableros(){
+  const selS=document.getElementById('f-sala').value;
+  const src=selS?allRows.filter(r=>r._sala===selS):allRows;
+  const tEl=document.getElementById('f-tablero');
+  tEl.innerHTML='<option value="">Todos los tableros</option>';
+  [...new Set(src.map(r=>r._tablero))].sort().forEach(t=>{
+    const o=document.createElement('option');o.value=t;o.textContent=t;tEl.appendChild(o);
+  });
+  document.getElementById('f-circ').innerHTML='<option value="">Todos los circuitos</option>';
+}
+
+function onSalaChange(){populateTableros();applyFilters();}
+
+function onTableroChange(){
+  const selS=document.getElementById('f-sala').value;
+  const selTb=document.getElementById('f-tablero').value;
+  const cEl=document.getElementById('f-circ');
+  cEl.innerHTML='<option value="">Todos los circuitos</option>';
+  [...new Set(allRows.filter(r=>(!selS||r._sala===selS)&&(!selTb||r._tablero===selTb)).map(r=>r._circ))].sort()
+    .forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;cEl.appendChild(o);});
+  applyFilters();
+}
+
+function applyFilters(){
+  const s=document.getElementById('f-sala').value;
+  const tb=document.getElementById('f-tablero').value;
+  const ci=document.getElementById('f-circ').value;
+  const nz=document.getElementById('f-nz').value==='1';
+  filteredRows=allRows.filter(r=>(!s||r._sala===s)&&(!tb||r._tablero===tb)&&(!ci||r._circ===ci)&&(!nz||r._corriente>0));
+  renderAll();
+}
+
+// noGral: excluye circuitos cabecera de los cálculos de suma
+function noGral(rows){return rows.filter(r=>!r._isGral);}
+
+// último período de cada sala (para no excluir salas con períodos distintos)
+function lastPeriodRows(rows){
+  const salas=[...new Set(rows.map(r=>r._sala))];
+  return salas.flatMap(s=>{
+    const sr=rows.filter(r=>r._sala===s);
+    const lp=[...new Set(sr.map(r=>r._periodo))].sort().pop();
+    return sr.filter(r=>r._periodo===lp);
+  });
+}
+
+function setVista(v,btn){curVista=v;document.querySelectorAll('.vbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderAll();}
+function switchTab(tab,btn){curTab=tab;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderAll();}
+
+function renderAll(){
+  if(!filteredRows.length){['m-pot','m-cor','m-top','m-cnt'].forEach(id=>document.getElementById(id).textContent='—');return;}
+  updateMetrics();renderMain();renderSala();renderPie();renderDetail();renderAcDc();renderTable();
+}
+
+// ── MÉTRICAS ───────────────────────────────────────────────────
+function updateMetrics(){
+  const lr=noGral(lastPeriodRows(filteredRows));
+  document.getElementById('m-pot').textContent=lr.reduce((s,r)=>s+r._pot,0).toFixed(2)+' kW';
+  const act=lr.filter(r=>r._corriente>0);
+  document.getElementById('m-cor').textContent=(act.length?act.reduce((s,r)=>s+r._corriente,0)/act.length:0).toFixed(1)+' A';
+  const byTb={};lr.forEach(r=>{byTb[r._tablero]=(byTb[r._tablero]||0)+r._pot;});
+  const top=Object.entries(byTb).sort((a,b)=>b[1]-a[1])[0];
+  if(top){document.getElementById('m-top').textContent=top[0];document.getElementById('m-tops').textContent=top[1].toFixed(2)+' kW';}
+  const ps=[...new Set(filteredRows.map(r=>r._periodo))].sort();
+  document.getElementById('m-cnt').textContent=filteredRows.length.toLocaleString();
+  document.getElementById('m-cnts').textContent=ps.length+' meses';
+}
+
+// ── HELPERS ────────────────────────────────────────────────────
+function mkLegend(id,items){document.getElementById(id).innerHTML=items.map((it,i)=>`<span class="li"><span class="ls" style="background:${it.c||PAL[i%PAL.length]}"></span>${it.l}</span>`).join('');}
+function mkChart(id,cfg,ref){if(ref)ref.destroy();return new Chart(document.getElementById(id).getContext('2d'),cfg);}
+function sortDesc(keys,data){
+  const pairs=keys.map((k,i)=>({k,v:data[i]})).sort((a,b)=>b.v-a.v);
+  return{keys:pairs.map(p=>p.k),data:pairs.map(p=>p.v)};
+}
+const baseOpts=(yLabel,horizontal)=>({
+  responsive:true,maintainAspectRatio:false,indexAxis:horizontal?'y':'x',
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label||''}: ${(horizontal?ctx.parsed.x:ctx.parsed.y).toFixed(2)} ${yLabel}`}}},
+  scales:{
+    x:{ticks:{color:'#7a8299',font:{size:11},maxRotation:35},grid:{color:'rgba(255,255,255,0.04)'}},
+    y:{ticks:{color:'#7a8299',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'},title:{display:!horizontal,text:yLabel,color:'#4a5168',font:{size:11}}}
+  }
+});
+
+// ── GRÁFICO PRINCIPAL ──────────────────────────────────────────
+function renderMain(){
+  const ps=[...new Set(filteredRows.map(r=>r._periodo))].sort();
+  const fld=curVista==='pot'?'_pot':'_corriente';
+  const unit=curVista==='pot'?'kW':'A';
+  const nr=noGral(filteredRows);
+
+  if(curTab==='evol'){
+    const tableros=[...new Set(nr.map(r=>r._tablero))].sort().slice(0,10);
+    const datasets=tableros.map((t,i)=>({
+      label:t,
+      data:ps.map(p=>+nr.filter(r=>r._tablero===t&&r._periodo===p).reduce((s,r)=>s+r[fld],0).toFixed(2)),
+      borderColor:PAL[i%PAL.length],backgroundColor:PAL[i%PAL.length]+'22',tension:0.35,fill:false,pointRadius:3
+    }));
+    mkLegend('lg-main',tableros.map((t,i)=>({l:t,c:PAL[i%PAL.length]})));
+    document.getElementById('msub').textContent=`${unit} por tablero en el tiempo`;
+    cMain=mkChart('cm',{type:'line',data:{labels:ps,datasets},options:baseOpts(unit)},cMain);
+    return;
+  }
+
+  if(curTab==='salas'){
+    const salas=[...new Set(nr.map(r=>r._sala))];
+    const raw=salas.map(s=>{
+      const sr=nr.filter(r=>r._sala===s);
+      const lp=[...new Set(sr.map(r=>r._periodo))].sort().pop();
+      return{k:s,v:+sr.filter(r=>r._periodo===lp).reduce((a,r)=>a+r[fld],0).toFixed(2)};
+    });
+    const sorted=raw.sort((a,b)=>b.v-a.v);
+    const keys=sorted.map(x=>x.k),data=sorted.map(x=>x.v);
+    mkLegend('lg-main',keys.map((k,i)=>({l:k,c:PAL[i%PAL.length]})));
+    document.getElementById('msub').textContent=`${unit} por sala — último período de cada sala`;
+    cMain=mkChart('cm',{type:'bar',data:{labels:keys,datasets:[{label:unit,data,backgroundColor:keys.map((_,i)=>PAL[i%PAL.length]),borderWidth:0,borderRadius:4}]},options:baseOpts(unit)},cMain);
+    return;
+  }
+
+  const last=ps[ps.length-1];
+  const lr=noGral(filteredRows.filter(r=>r._periodo===last));
+  let keys,rawData;
+  if(curTab==='tableros'){
+    const tableros=[...new Set(lr.map(r=>r._tablero))];
+    keys=tableros;rawData=tableros.map(t=>+lr.filter(r=>r._tablero===t).reduce((s,r)=>s+r[fld],0).toFixed(2));
+  } else {
+    const circs=[...new Set(lr.map(r=>r._circ))].slice(0,20);
+    keys=circs;rawData=circs.map(c=>+lr.filter(r=>r._circ===c).reduce((s,r)=>s+r[fld],0).toFixed(2));
+  }
+  const sd=sortDesc(keys,rawData);
+  mkLegend('lg-main',sd.keys.map((k,i)=>({l:k,c:PAL[i%PAL.length]})));
+  document.getElementById('msub').textContent=`${unit} — ${last}`;
+  cMain=mkChart('cm',{type:'bar',data:{labels:sd.keys,datasets:[{label:unit,data:sd.data,backgroundColor:sd.keys.map((_,i)=>PAL[i%PAL.length]),borderWidth:0,borderRadius:4}]},options:baseOpts(unit)},cMain);
+}
+
+// ── POTENCIA POR SALA ──────────────────────────────────────────
+function renderSala(){
+  const nr=noGral(filteredRows);
+  const salas=[...new Set(nr.map(r=>r._sala))];
+  const pairs=salas.map(s=>{
+    const sr=nr.filter(r=>r._sala===s);
+    const lp=[...new Set(sr.map(r=>r._periodo))].sort().pop();
+    return{k:s,v:+sr.filter(r=>r._periodo===lp).reduce((a,r)=>a+r._pot,0).toFixed(2)};
+  }).sort((a,b)=>b.v-a.v);
+  const keys=pairs.map(p=>p.k),data=pairs.map(p=>p.v);
+  mkLegend('lg-sala',keys.map((k,i)=>({l:k,c:PAL[i%PAL.length]})));
+  cSala=mkChart('cs',{type:'bar',data:{labels:keys,datasets:[{label:'kW',data,backgroundColor:keys.map((_,i)=>PAL[i%PAL.length]),borderWidth:0,borderRadius:5}]},options:baseOpts('kW')},cSala);
+}
+
+// ── DISTRIBUCIÓN % ─────────────────────────────────────────────
+function renderPie(){
+  const nr=noGral(filteredRows);
+  const salas=[...new Set(nr.map(r=>r._sala))];
+  const pairs=salas.map(s=>{
+    const sr=nr.filter(r=>r._sala===s);
+    const lp=[...new Set(sr.map(r=>r._periodo))].sort().pop();
+    return{k:s,v:+sr.filter(r=>r._periodo===lp).reduce((a,r)=>a+r._pot,0).toFixed(2)};
+  });
+  const total=pairs.reduce((a,p)=>a+p.v,0);
+  const keys=pairs.map(p=>p.k),data=pairs.map(p=>p.v);
+  mkLegend('lg-pie',keys.map((k,i)=>({l:`${k} (${total>0?(data[i]/total*100).toFixed(1):0}%)`,c:PAL[i%PAL.length]})));
+  cPie=mkChart('cp',{type:'doughnut',data:{labels:keys,datasets:[{data,backgroundColor:keys.map((_,i)=>PAL[i%PAL.length]),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.parsed.toFixed(2)} kW (${total>0?(ctx.parsed/total*100).toFixed(1):0}%)`}}},cutout:'60%'}},cPie);
+}
+
+// ── DETALLE POR CIRCUITO ───────────────────────────────────────
+function renderDetail(){
+  const ps=[...new Set(filteredRows.map(r=>r._periodo))].sort();
+  const last=ps[ps.length-1];
+  const lr=noGral(filteredRows.filter(r=>r._periodo===last));
+  const circs=[...new Set(lr.map(r=>r._circ))];
+  const pairs=circs.map(c=>({
+    c,pot:+lr.filter(r=>r._circ===c).reduce((s,r)=>s+r._pot,0).toFixed(2),
+    cor:+lr.filter(r=>r._circ===c).reduce((s,r)=>s+r._corriente,0).toFixed(2)
+  })).sort((a,b)=>b.pot-a.pot).slice(0,25);
+  const labels=pairs.map(p=>p.c),potData=pairs.map(p=>p.pot),corData=pairs.map(p=>p.cor);
+  document.getElementById('sub-det').textContent=last||'—';
+  mkLegend('lg-det',[{l:'Potencia kW',c:PAL[0]},{l:'Corriente A',c:PAL[2]}]);
+  const h=Math.max(280,labels.length*36+80);
+  document.getElementById('det-wrap').style.height=h+'px';
+  cDet=mkChart('cd',{type:'bar',data:{labels,datasets:[
+    {label:'kW',data:potData,backgroundColor:PAL[0],borderWidth:0,borderRadius:3,yAxisID:'y'},
+    {label:'A',data:corData,backgroundColor:PAL[2],borderWidth:0,borderRadius:3,yAxisID:'y2'}
+  ]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x.toFixed(2)}`}}},
+    scales:{y:{ticks:{color:'#7a8299',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
+      y2:{display:false},x:{ticks:{color:'#7a8299',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}}}}},cDet);
+}
+
+// ── AC vs DC ───────────────────────────────────────────────────
+function renderAcDc(){
+  const nr=noGral(filteredRows);
+  const lpr=lastPeriodRows(nr);
+  const acPot=lpr.filter(r=>r._tipo==='AC').reduce((s,r)=>s+r._pot,0);
+  const dcPot=lpr.filter(r=>r._tipo==='DC').reduce((s,r)=>s+r._pot,0);
+  mkLegend('lg-acdc',[{l:`AC: ${acPot.toFixed(2)} kW`,c:PAL[0]},{l:`DC: ${dcPot.toFixed(2)} kW`,c:PAL[2]}]);
+  cAcDc=mkChart('cacdc',{type:'doughnut',data:{labels:['AC','DC'],datasets:[{data:[acPot,dcPot],backgroundColor:[PAL[0],PAL[2]],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.parsed.toFixed(2)} kW`}}},cutout:'58%'}},cAcDc);
+  const ps=[...new Set(nr.map(r=>r._periodo))].sort();
+  const acEvol=ps.map(p=>+nr.filter(r=>r._periodo===p&&r._tipo==='AC').reduce((s,r)=>s+r._pot,0).toFixed(2));
+  const dcEvol=ps.map(p=>+nr.filter(r=>r._periodo===p&&r._tipo==='DC').reduce((s,r)=>s+r._pot,0).toFixed(2));
+  mkLegend('lg-acdc2',[{l:'AC',c:PAL[0]},{l:'DC',c:PAL[2]}]);
+  cAcDc2=mkChart('cacdc2',{type:'line',data:{labels:ps,datasets:[
+    {label:'AC',data:acEvol,borderColor:PAL[0],backgroundColor:PAL[0]+'22',tension:0.35,fill:true,pointRadius:3},
+    {label:'DC',data:dcEvol,borderColor:PAL[2],backgroundColor:PAL[2]+'22',tension:0.35,fill:true,pointRadius:3}
+  ]},options:baseOpts('kW')},cAcDc2);
+}
+
+// ── TABLA ──────────────────────────────────────────────────────
+function renderTable(){
+  const rows=noGral(filteredRows).slice().sort((a,b)=>b._periodo.localeCompare(a._periodo)).slice(0,400);
+  const tb=document.getElementById('tbody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--hint);">Sin resultados</td></tr>';return;}
+  tb.innerHTML=rows.map(r=>{
+    const badge=r._tipo==='DC'?'<span class="badge bdc">DC</span>':'<span class="badge bac">AC</span>';
+    return `<tr>
+      <td>${r._sala}</td><td>${r._tablero}</td><td>${r._circ}</td><td>${badge}</td><td>${r._periodo}</td>
+      <td class="num">${r._r!=null?r._r.toFixed(2):'—'}</td>
+      <td class="num">${r._s!=null?r._s.toFixed(2):'—'}</td>
+      <td class="num">${r._t!=null?r._t.toFixed(2):'—'}</td>
+      <td class="num">${r._corriente.toFixed(3)}</td>
+      <td class="num pv">${r._pot.toFixed(3)}</td>
+      <td class="com-cell" title="${r._comentarios||''}">${r._comentarios||''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── EXPORT CSV ─────────────────────────────────────────────────
+function exportCSV(){
+  const rows=noGral(filteredRows).slice().sort((a,b)=>b._periodo.localeCompare(a._periodo));
+  const hdr='Sala,Tablero,Circuito,Tipo,Período,I_R,I_S,I_T,I_avg,Potencia_kW';
+  const lines=rows.map(r=>[
+    r._sala,r._tablero,r._circ,r._tipo,r._periodo,
+    r._r!=null?r._r.toFixed(2):'',r._s!=null?r._s.toFixed(2):'',r._t!=null?r._t.toFixed(2):'',
+    r._corriente.toFixed(3),r._pot.toFixed(4)
+  ].join(','));
+  const blob=new Blob([[hdr,...lines].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`tableros_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+}
+</script>
+</body>
+</html>
