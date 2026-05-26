@@ -327,6 +327,14 @@ function normalizeRows(raw, td){
     return g;
   });
 
+  // Debug: check for TDU G CTO 1-R
+  const debug=normales.filter(r=>r._tablero==='TDU G'&&r._circ==='1-R');
+  if(debug.length===0 && name==='mediciones_tic'){
+    console.warn('MISSING: TDU G CTO 1-R not in normales. Total normales:',normales.length);
+    // Find the raw row
+    const rawRow=raw.find(r=>r.tablero==='TDU G'&&r.cto==='1'&&r.fase==='R');
+    console.warn('Raw row from API:', rawRow);
+  }
   return [...normales,...grales];
 }
 
