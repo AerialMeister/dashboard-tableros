@@ -232,12 +232,22 @@ function setLoad(v){document.getElementById('spin').style.display=v?'block':'non
 async function fetchT(table){
   const desde=document.getElementById('desde').value;
   const hasta=document.getElementById('hasta').value;
-  let url=`${SB_URL}/rest/v1/${table}?select=*&limit=50000`;
-  if(desde) url+=`&periodo=gte.${desde}-01`;
-  if(hasta) url+=`&periodo=lte.${hasta}-01`;
-  const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json'}});
-  if(!r.ok) throw new Error(`${table}: HTTP ${r.status}`);
-  return r.json();
+  let allData=[];
+  let offset=0;
+  const pageSize=1000;
+  while(true){
+    let url=`${SB_URL}/rest/v1/${table}?select=*&limit=${pageSize}&offset=${offset}`;
+    if(desde) url+=`&periodo=gte.${desde}-01`;
+    if(hasta) url+=`&periodo=lte.${hasta}-01`;
+    const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json','Prefer':'count=none'}});
+    if(!r.ok) throw new Error(`${table}: HTTP ${r.status}`);
+    const page=await r.json();
+    allData=[...allData,...page];
+    if(page.length<pageSize) break;
+    offset+=pageSize;
+  }
+  console.log(`${table}: ${allData.length} rows fetched`);
+  return allData;
 }
 
 // ── NORMALIZACIÓN ──────────────────────────────────────────────
@@ -327,14 +337,6 @@ function normalizeRows(raw, td){
     return g;
   });
 
-  // Debug: check for TDU G CTO 1-R
-  const debug=normales.filter(r=>r._tablero==='TDU G'&&r._circ==='1-R');
-  if(debug.length===0 && name==='mediciones_tic'){
-    console.warn('MISSING: TDU G CTO 1-R not in normales. Total normales:',normales.length);
-    // Find the raw row
-    const rawRow=raw.find(r=>r.tablero==='TDU G'&&r.cto==='1'&&r.fase==='R');
-    console.warn('Raw row from API:', rawRow);
-  }
   return [...normales,...grales];
 }
 
