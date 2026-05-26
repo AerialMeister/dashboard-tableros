@@ -232,7 +232,7 @@ function setLoad(v){document.getElementById('spin').style.display=v?'block':'non
 async function fetchT(table){
   const desde=document.getElementById('desde').value;
   const hasta=document.getElementById('hasta').value;
-  let url=`${SB_URL}/rest/v1/${table}?select=*&limit=10000`;
+  let url=`${SB_URL}/rest/v1/${table}?select=*&limit=50000`;
   if(desde) url+=`&periodo=gte.${desde}-01`;
   if(hasta) url+=`&periodo=lte.${hasta}-01`;
   const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json'}});
@@ -289,10 +289,12 @@ function normalizeRows(raw, td){
 
     if(isGral){
       // Cabeceras trifásicas: agrupar fases
-      const key=`${periodo}||${sala}||${tablero}||${circ}`;
+      // Si cto es R/S/T, usar 'GRAL' como nombre del circuito para agrupar correctamente
+      const circGral=['R','S','T'].includes(circ.toUpperCase())?'GRAL':circ;
+      const key=`${periodo}||${sala}||${tablero}||${circGral}`;
       if(!gralMap[key]) gralMap[key]={
         _tabla:name,_salaGroup:salaGroup,
-        _sala:sala,_tablero:tablero,_circ:circ,
+        _sala:sala,_tablero:tablero,_circ:circGral,
         _periodo:periodo,_tipo:'AC',_isGral:true,
         _r:0,_s:0,_t:0,_comentarios:comentarios
       };
