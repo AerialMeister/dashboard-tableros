@@ -299,14 +299,22 @@ function normalizeRows(raw, td){
     if(row.comentarios) map[key]._comentarios=row.comentarios;
   });
 
-  // Paso 2: calcular potencia trifásica para cada circuito agrupado
+  // Paso 2: calcular potencia según número de fases
+  // 3 fases → trifásico: AVG(R,S,T) * sqrt(3) * 380 / 1000
+  // 1 o 2 fases → monofásico: I * 0.9 * 220 / 1000
   return Object.values(map).map(c=>{
+    const fases=[c._r,c._s,c._t].filter(v=>v!==null);
+    const n=fases.length||1;
     const r=c._r||0, s=c._s||0, t=c._t||0;
-    // contar fases con dato real (no null)
-    const n=[c._r,c._s,c._t].filter(v=>v!==null).length||1;
     const avg=(r+s+t)/n;
     c._corriente=+avg.toFixed(3);
-    c._pot=+(avg*Math.sqrt(3)*380/1000).toFixed(4);
+    if(n===3){
+      // trifásico
+      c._pot=+(avg*Math.sqrt(3)*380/1000).toFixed(4);
+    } else {
+      // monofásico
+      c._pot=+(avg*0.9*220/1000).toFixed(4);
+    }
     return c;
   });
 }
