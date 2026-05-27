@@ -214,7 +214,7 @@ const TABLES=[
   {name:'mediciones_tic',    salaGroup:'TIC',      circCol:'cto'},
   {name:'mediciones_sm48',   salaGroup:'SM48',     circCol:'sala'},
   {name:'mediciones_reso',   salaGroup:'RESO',     circCol:'cto'},
-  {name:'mediciones_salas_ti',salaGroup:'Salas TI',circCol:'nuevo_tag'},
+  {name:'mediciones_salas_ti',salaGroup:'Salas TI',circCol:'cto',tableroCol:'nuevo_tag'},
 ];
 
 (function init(){
@@ -259,7 +259,7 @@ async function fetchT(table){
 //     (se excluyen en los cálculos de suma con noGral())
 
 function normalizeRows(raw, td){
-  const {name, salaGroup, circCol}=td;
+  const {name, salaGroup, circCol, tableroCol}=td;
 
   // ── SM48 ──
   if(name==='mediciones_sm48'){
@@ -290,7 +290,7 @@ function normalizeRows(raw, td){
   raw.forEach(row=>{
     const periodo=(row.periodo||'').slice(0,7);
     const sala=row.sala||salaGroup;
-    const tablero=row.tablero||'—';
+    const tablero=row.tablero||row[td.tableroCol]||'—';
     const circ=row[circCol]||row.cto||'—';
     const fase=(row.fase||'').toUpperCase();
     const I=parseFloat(row.corriente_a||0);
