@@ -101,10 +101,11 @@ tbody tr:hover td{background:var(--surface2);}
   </div>
 
   <div class="sdiv">Fórmulas de potencia activa</div>
-  <div class="fgrid">
+  <div class="fgrid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
     <div class="fc"><div class="fct">DC — Solo SM48</div><div class="feq">P = I × 53 / 1000</div><div class="fdesc">Resultado en kW</div></div>
-    <div class="fc"><div class="fct">AC Monofásico</div><div class="feq">P = I × 0.9 × 220 / 1000</div><div class="fdesc">Resultado en kW</div></div>
-    <div class="fc"><div class="fct">Trifásico (TIC, RESO, Salas TI)</div><div class="feq">P = AVG(R,S,T) × √3 × 380 / 1000</div><div class="fdesc">Todos los circuitos con fases</div></div>
+    <div class="fc"><div class="fct">AC Monofásico — TIC / RESO</div><div class="feq">P = I × 0.9 × 220 / 1000</div><div class="fdesc">Cada fila = fase independiente</div></div>
+    <div class="fc"><div class="fct">AC Salas TI (fp=1)</div><div class="feq">P = I × 1 × 220 / 1000</div><div class="fdesc">MIDRANGE, MUNDO, CPD…</div></div>
+    <div class="fc"><div class="fct">Trifásico GRAL/BP</div><div class="feq">P = AVG(R,S,T) × √3 × 380 / 1000</div><div class="fdesc">es_circuito_general=true · excluido de sumas</div></div>
   </div>
 
   <div class="sdiv">Filtros</div>
@@ -210,11 +211,12 @@ let allRows=[],filteredRows=[],cMain=null,cSala=null,cPie=null,cDet=null,cAcDc=n
 let curTab='evol',curVista='pot';
 
 // Definición de tablas — estructura homologada
+// mediciones_salas_ti: circuito→'circuito', tablero→'tdu' (columna nuevo_tag en Supabase)
 const TABLES=[
-  {name:'mediciones_tic',    salaGroup:'TIC',      circCol:'cto'},
-  {name:'mediciones_sm48',   salaGroup:'SM48',     circCol:'sala'},
-  {name:'mediciones_reso',   salaGroup:'RESO',     circCol:'cto'},
-  {name:'mediciones_salas_ti',salaGroup:'Salas TI',circCol:'cto',tableroCol:'nuevo_tag'},
+  {name:'mediciones_tic',     salaGroup:'TIC',      circCol:'cto',      tableroCol:'tablero'},
+  {name:'mediciones_sm48',    salaGroup:'SM48',     circCol:'cto',      tableroCol:'tablero'},
+  {name:'mediciones_reso',    salaGroup:'RESO',     circCol:'cto',      tableroCol:'tablero'},
+  {name:'mediciones_salas_ti',salaGroup:'Salas TI', circCol:'circuito', tableroCol:'tdu'},
 ];
 
 (function init(){
@@ -237,16 +239,33 @@ async function fetchT(table){
   const pageSize=1000;
   while(true){
     let url=`${SB_URL}/rest/v1/${table}?select=*&limit=${pageSize}&offset=${offset}`;
+    // periodo es date YYYY-MM-DD; el input month da YYYY-MM
     if(desde) url+=`&periodo=gte.${desde}-01`;
-    if(hasta) url+=`&periodo=lte.${hasta}-01`;
-    const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json','Prefer':'count=none'}});
-    if(!r.ok) throw new Error(`${table}: HTTP ${r.status}`);
+    if(hasta) url+=`&periodo=lte.${hasta}-28`;
+    let r;
+    try{
+      r=await fetch(url,{headers:{
+        'apikey':SB_KEY,
+        'Authorization':`Bearer ${SB_KEY}`,
+        'Accept':'application/json',
+        'Prefer':'count=none'
+      }});
+    }catch(netErr){
+      console.error(`[${table}] network error:`,netErr,'\nURL:',url);
+      throw new Error(`${table}: error de red — ${netErr.message}. Revisa la consola (F12).`);
+    }
+    if(!r.ok){
+      const body=await r.text().catch(()=>'');
+      console.error(`[${table}] HTTP ${r.status}:`,body,'\nURL:',url);
+      throw new Error(`${table}: HTTP ${r.status} — ${body.slice(0,120)}`);
+    }
     const page=await r.json();
     allData=[...allData,...page];
+    console.log(`${table}: offset=${offset} -> ${page.length} filas`);
     if(page.length<pageSize) break;
     offset+=pageSize;
   }
-  console.log(`${table}: ${allData.length} rows fetched`);
+  console.log(`${table}: TOTAL ${allData.length} filas`);
   return allData;
 }
 
@@ -261,20 +280,30 @@ async function fetchT(table){
 function normalizeRows(raw, td){
   const {name, salaGroup, circCol, tableroCol}=td;
 
+  // ── Normalizar sala: BLANK → RESO ──
+  function normSala(sala){
+    if(!sala) return salaGroup;
+    const s=sala.trim().toUpperCase();
+    return s==='BLANK'?'RESO':sala.trim();
+  }
+
   // ── SM48 ──
   if(name==='mediciones_sm48'){
     return raw.map(row=>{
       const I=parseFloat(row.corriente_a||0);
+      const tipoCte=(row.tipo_corriente||'DC').toUpperCase();
+      // DC: I × 53/1000 ; AC: I × 0.9 × 220/1000
+      const pot=tipoCte==='DC'?+(I*53/1000).toFixed(4):+(I*0.9*220/1000).toFixed(4);
       return {
         _tabla:name, _salaGroup:'SM48',
-        _sala:row.sala||'SM48',
+        _sala:normSala(row.sala),
         _tablero:row.tablero||'—',
-        _circ:row.sala||'—',
+        _circ:row.cto||row.sala||'—',
         _periodo:(row.periodo||'').slice(0,7),
-        _tipo:row.tipo_corriente||'DC',
+        _tipo:tipoCte,
         _isGral:false,
         _r:I,_s:0,_t:0,_corriente:I,
-        _pot:+(I*53/1000).toFixed(4),
+        _pot:pot,
         _comentarios:''
       };
     });
@@ -289,8 +318,10 @@ function normalizeRows(raw, td){
 
   raw.forEach(row=>{
     const periodo=(row.periodo||'').slice(0,7);
-    const sala=row.sala||salaGroup;
-    const tablero=row.tablero||row[td.tableroCol]||'—';
+    const sala=normSala(row.sala||salaGroup);
+    // tablero: leer columna correcta según la tabla (tdu para salas_ti, tablero para el resto)
+    const tablero=(tableroCol?row[tableroCol]:null)||row.tablero||'—';
+    // circ: leer columna correcta (circuito para salas_ti, cto para el resto)
     const circ=row[circCol]||row.cto||'—';
     const fase=(row.fase||'').toUpperCase();
     const I=parseFloat(row.corriente_a||0);
@@ -352,7 +383,7 @@ async function loadAll(){
     setSt('ok','Conectado');
     rebuildFilters();
     applyFilters();
-  }catch(e){showErr('Error: '+e.message);setSt('err','Error');}
+  }catch(e){showErr('Error cargando datos: '+e.message+' — Abre la consola (F12) para más detalles.');setSt('err','Error');console.error('loadAll error:',e);}
   setLoad(false);
 }
 
