@@ -265,7 +265,7 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const TABLE='mediciones';
 const PAGE=1000;
 
-let allRows=[],filtered=[],sortCol='potencia_kw',sortAsc=false,mainChart=null,currentTab='evolucion';
+let allRows=[],filtered=[],sortCol='potencia_kw',sortAsc=false,mainChart=null,currentTab='evolucion',isLoading=false;
 
 async function sbFetch(params=''){
   let rows=[],offset=0;
@@ -294,6 +294,8 @@ const colorMap={};
 function salaColor(s){if(!colorMap[s])colorMap[s]=PALETTE[Object.keys(colorMap).length%PALETTE.length];return colorMap[s];}
 
 async function loadData(){
+  if(isLoading)return; // evitar doble disparo
+  isLoading=true;
   hideErr();setStatus('loading','Cargando…');
   document.getElementById('loading').classList.remove('hidden');
   document.getElementById('load-msg').textContent='Descargando mediciones…';
@@ -305,6 +307,7 @@ async function loadData(){
       const hasta=new Date(y,m,0).toISOString().slice(0,10);
       params+=`&periodo=gte.${mes}-01&periodo=lte.${hasta}`;
     }
+    allRows=[]; // limpiar antes de fetch
     allRows=await sbFetch(params);
     // LOG: verificar duplicados
     const tic1=allRows.filter(r=>r.sala==='TIC 1'&&!r.es_circuito_general);
@@ -317,6 +320,7 @@ async function loadData(){
     setStatus('ok',`${allRows.length.toLocaleString()} filas`);
     document.getElementById('last-updated').textContent=new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
   }catch(e){console.error(e);showErr('Error: '+e.message);setStatus('error','Error');}
+  isLoading=false;
   document.getElementById('loading').classList.add('hidden');
 }
 
