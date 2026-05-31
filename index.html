@@ -276,6 +276,10 @@ async function sbFetch(params=''){
     catch(e){throw new Error('Error de red: '+e.message);}
     if(!res.ok){const t=await res.text().catch(()=>'');throw new Error(`HTTP ${res.status}: ${t.slice(0,100)}`);}
     const page=await res.json();
+    console.log(`Página offset=${offset}: ${page.length} filas`);
+    // Verificar TDU D en esta página
+    const tduD=page.filter(r=>r.tablero==='TDU D'&&r.sala==='TIC 1');
+    if(tduD.length>0) console.log(`  → TDU D TIC1 en esta página: ${tduD.length} filas`);
     rows=rows.concat(page);
     if(page.length<PAGE)break;
     offset+=PAGE;
@@ -301,7 +305,7 @@ async function loadData(){
   document.getElementById('load-msg').textContent='Descargando mediciones…';
   try{
     const mes=document.getElementById('f-mes').value;
-    let params='&order=periodo.desc,sala.asc';
+    let params='&order=periodo.desc,sala.asc,id.asc';
     if(mes){
       const [y,m]=mes.split('-').map(Number);
       const hasta=new Date(y,m,0).toISOString().slice(0,10);
