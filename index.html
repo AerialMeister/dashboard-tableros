@@ -527,9 +527,23 @@ document.getElementById('f-tablero').addEventListener('change',()=>{updateCTOFil
 document.getElementById('f-cto').addEventListener('change',applyFilters);
 document.getElementById('f-mes').addEventListener('change',loadData);
 
-(function init(){
-  const now=new Date();
-  document.getElementById('f-mes').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+(async function init(){
+  // Detectar automáticamente el último período disponible en Supabase
+  try{
+    const res=await fetch(`${SB_URL}/rest/v1/mediciones?select=periodo&order=periodo.desc&limit=1`,{
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json'}
+    });
+    const data=await res.json();
+    if(data&&data.length>0){
+      document.getElementById('f-mes').value=data[0].periodo.slice(0,7);
+    }else{
+      const now=new Date();
+      document.getElementById('f-mes').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    }
+  }catch(e){
+    const now=new Date();
+    document.getElementById('f-mes').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  }
   loadData();
 })();
 </script>
