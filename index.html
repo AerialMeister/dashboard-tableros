@@ -276,10 +276,6 @@ async function sbFetch(params=''){
     catch(e){throw new Error('Error de red: '+e.message);}
     if(!res.ok){const t=await res.text().catch(()=>'');throw new Error(`HTTP ${res.status}: ${t.slice(0,100)}`);}
     const page=await res.json();
-    console.log(`Página offset=${offset}: ${page.length} filas`);
-    // Verificar TDU D en esta página
-    const tduD=page.filter(r=>r.tablero==='TDU D'&&r.sala==='TIC 1');
-    if(tduD.length>0) console.log(`  → TDU D TIC1 en esta página: ${tduD.length} filas`);
     rows=rows.concat(page);
     if(page.length<PAGE)break;
     offset+=PAGE;
@@ -311,21 +307,8 @@ async function loadData(){
       const hasta=new Date(y,m,0).toISOString().slice(0,10);
       params+=`&periodo=gte.${mes}-01&periodo=lte.${hasta}`;
     }
-    allRows=[]; // limpiar antes de fetch
     allRows=await sbFetch(params);
-    // LOG: verificar duplicados
-    const tic1=allRows.filter(r=>r.sala==='TIC 1'&&!r.es_circuito_general);
-    const kwTic1=tic1.reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0);
-    console.log(`TIC 1: ${tic1.length} filas, ${kwTic1.toFixed(2)} kW`);
-    // Ver tipos de potencia_kw
-    const tipos=[...new Set(tic1.map(r=>typeof r.potencia_kw))];
-    const nulos=tic1.filter(r=>r.potencia_kw===null||r.potencia_kw===undefined).length;
-    const ceros=tic1.filter(r=>parseFloat(r.potencia_kw||0)===0).length;
-    console.log('tipos potencia_kw:',tipos,'nulos:',nulos,'ceros:',ceros);
-    console.log('primeras 3 filas TIC1:',tic1.slice(0,3).map(r=>({cto:r.cto,kw:r.potencia_kw,esg:r.es_circuito_general})));
-    const periodos=[...new Set(allRows.map(r=>r.periodo))];
-    console.log('Períodos en allRows:', periodos);
-    console.log('Total filas allRows:', allRows.length);
+
     buildFilters();applyFilters();
     setStatus('ok',`${allRows.length.toLocaleString()} filas`);
     document.getElementById('last-updated').textContent=new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
