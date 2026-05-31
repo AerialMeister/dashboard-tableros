@@ -313,6 +313,12 @@ async function loadData(){
     const tic1=allRows.filter(r=>r.sala==='TIC 1'&&!r.es_circuito_general);
     const kwTic1=tic1.reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0);
     console.log(`TIC 1: ${tic1.length} filas, ${kwTic1.toFixed(2)} kW`);
+    // Ver tipos de potencia_kw
+    const tipos=[...new Set(tic1.map(r=>typeof r.potencia_kw))];
+    const nulos=tic1.filter(r=>r.potencia_kw===null||r.potencia_kw===undefined).length;
+    const ceros=tic1.filter(r=>parseFloat(r.potencia_kw||0)===0).length;
+    console.log('tipos potencia_kw:',tipos,'nulos:',nulos,'ceros:',ceros);
+    console.log('primeras 3 filas TIC1:',tic1.slice(0,3).map(r=>({cto:r.cto,kw:r.potencia_kw,esg:r.es_circuito_general})));
     const periodos=[...new Set(allRows.map(r=>r.periodo))];
     console.log('Períodos en allRows:', periodos);
     console.log('Total filas allRows:', allRows.length);
