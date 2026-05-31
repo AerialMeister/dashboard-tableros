@@ -283,7 +283,7 @@ async function sbFetch(params=''){
   return rows;
 }
 
-const noGral=r=>!r.es_circuito_general;
+const noGral=r=>r.es_circuito_general!==true&&r.es_circuito_general!=='true'&&r.es_circuito_general!==1;
 const fmt=(n,d=2)=>(n===null||n===undefined||isNaN(n))?'—':parseFloat(n).toFixed(d);
 function setStatus(s,t){document.getElementById('sdot').className='status-dot '+s;document.getElementById('stxt').textContent=t;}
 function showErr(m){const e=document.getElementById('err-bar');e.textContent=m;e.style.display='block';}
@@ -306,6 +306,13 @@ async function loadData(){
       params+=`&periodo=gte.${mes}-01&periodo=lte.${hasta}`;
     }
     allRows=await sbFetch(params);
+    // LOG: verificar duplicados
+    const tic1=allRows.filter(r=>r.sala==='TIC 1'&&!r.es_circuito_general);
+    const kwTic1=tic1.reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0);
+    console.log(`TIC 1: ${tic1.length} filas, ${kwTic1.toFixed(2)} kW`);
+    const periodos=[...new Set(allRows.map(r=>r.periodo))];
+    console.log('Períodos en allRows:', periodos);
+    console.log('Total filas allRows:', allRows.length);
     buildFilters();applyFilters();
     setStatus('ok',`${allRows.length.toLocaleString()} filas`);
     document.getElementById('last-updated').textContent=new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
