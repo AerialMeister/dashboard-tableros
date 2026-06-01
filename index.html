@@ -286,6 +286,17 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
 
 
 
+  <!-- BARRAS POR SALA -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Potencia por Sala</div>
+      <div style="font-size:11px;color:var(--text3)">kW · sin GRAL/BP · ordenado de mayor a menor</div>
+    </div>
+    <div class="panel-body">
+      <div class="chart-wrap" style="height:320px"><canvas id="sala-bar-chart"></canvas></div>
+    </div>
+  </div>
+
   <!-- PERÍODO + GENERAL vs CIRCUITOS -->
   <div class="two-col-eq">
     <div class="panel">
@@ -326,14 +337,16 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
             <th class="sortable" style="text-align:right" onclick="sort('corriente_t')">T (A) ↕</th>
             <th class="sortable" style="text-align:right" onclick="sort('potencia_kw')">kW ↕</th>
             <th>Estado</th>
+            <th>GRAL</th>
           </tr>
           <tr class="filter-row" id="col-filters">
-            <th><select id="cf-sala" onchange="applyColFilters()"><option value="">Todas</option></select></th>
-            <th><select id="cf-tablero" onchange="applyColFilters()"><option value="">Todos</option></select></th>
+            <th><select id="cf-sala" onchange="onColSalaChange()"><option value="">Todas</option></select></th>
+            <th><select id="cf-tablero" onchange="onColTableroChange()"><option value="">Todos</option></select></th>
             <th><select id="cf-cto" onchange="applyColFilters()"><option value="">Todos</option></select></th>
             <th><select id="cf-tipo" onchange="applyColFilters()"><option value="">Todos</option><option>AC</option><option>DC</option></select></th>
             <th></th><th></th><th></th><th></th>
             <th><select id="cf-estado" onchange="applyColFilters()"><option value="">Todos</option><option>ON</option><option>OFF</option></select></th>
+            <th><select id="cf-gral" onchange="applyColFilters()"><option value="">Todos</option><option value="NO">No GRAL</option><option value="SI">Solo GRAL</option></select></th>
           </tr>
         </thead>
         <tbody id="detail-tbody"></tbody>
@@ -462,17 +475,37 @@ function applyFilters(){
   renderAll();
 }
 function populateColFilters(){
-  // Poblar selects de columna con valores únicos de filtered
-  const sel=(id,vals)=>{
+  const sel=(id,vals,firstLabel)=>{
     const el=document.getElementById(id);
     const cur=el.value;
-    const first=el.options[0].text;
-    el.innerHTML=`<option value="">${first}</option>`;
+    el.innerHTML=`<option value="">${firstLabel}</option>`;
     vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;if(v===cur)o.selected=true;el.appendChild(o);});
   };
-  sel('cf-sala',[...new Set(filtered.map(r=>r.sala).filter(Boolean))].sort());
-  sel('cf-tablero',[...new Set(filtered.map(r=>r.tablero).filter(Boolean))].sort());
-  sel('cf-cto',[...new Set(filtered.map(r=>r.cto).filter(Boolean))].sort());
+  // Sala: todos los valores de filtered
+  sel('cf-sala',[...new Set(filtered.map(r=>r.sala).filter(Boolean))].sort(),'Todas');
+  // Tablero: filtrado por sala seleccionada
+  const fs=document.getElementById('cf-sala').value;
+  const rowsT=fs?filtered.filter(r=>r.sala===fs):filtered;
+  sel('cf-tablero',[...new Set(rowsT.map(r=>r.tablero).filter(Boolean))].sort(),'Todos');
+  // CTO: filtrado por sala+tablero seleccionados
+  const ft=document.getElementById('cf-tablero').value;
+  const rowsC=rowsT.filter(r=>!ft||r.tablero===ft);
+  sel('cf-cto',[...new Set(rowsC.map(r=>r.cto).filter(Boolean))].sort(),'Todos');
+}
+
+// Encadenar selects de columna
+function onColSalaChange(){
+  // Al cambiar sala, resetear tablero y cto
+  document.getElementById('cf-tablero').value='';
+  document.getElementById('cf-cto').value='';
+  populateColFilters();
+  applyColFilters();
+}
+function onColTableroChange(){
+  // Al cambiar tablero, resetear cto
+  document.getElementById('cf-cto').value='';
+  populateColFilters();
+  applyColFilters();
 }
 
 function applyColFilters(){
@@ -481,12 +514,16 @@ function applyColFilters(){
   const fc=document.getElementById('cf-cto').value;
   const fti=document.getElementById('cf-tipo').value;
   const fe=document.getElementById('cf-estado').value;
+  const fg=document.getElementById('cf-gral').value;
+
   colFiltered=filtered.filter(r=>{
     if(fs&&r.sala!==fs)return false;
     if(ft&&r.tablero!==ft)return false;
     if(fc&&r.cto!==fc)return false;
     if(fti&&r.tipo_corriente!==fti)return false;
     if(fe&&(r.estado_disyuntor||'').toUpperCase()!==fe)return false;
+    if(fg==='SI'&&!r.es_circuito_general)return false;
+    if(fg==='NO'&&r.es_circuito_general)return false;
     return true;
   });
   renderDetail();
@@ -495,6 +532,7 @@ function applyColFilters(){
 // ── RENDER ALL ──
 function renderAll(){
   renderMetrics();
+  renderSalaBarChart();
   renderPeriodo();
   renderGralChart();
   renderVariacion();
@@ -543,6 +581,55 @@ function renderPeriodo(){
   document.getElementById('periodo-panel').innerHTML=entries.length
     ?`<div class="sala-list">${entries.map(([sala,per])=>`<div class="sala-row"><div class="sala-name" title="${sala}">${sala}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);margin-left:auto">${per||'—'}</div></div>`).join('')}</div>`
     :'<div class="empty">Sin datos</div>';
+}
+
+// ── BARRAS POR SALA ──
+let salaBarChart=null;
+function renderSalaBarChart(){
+  if(salaBarChart){salaBarChart.destroy();salaBarChart=null;}
+  const ctx=document.getElementById('sala-bar-chart');
+  const noG=filtered.filter(noGral);
+  const byS={};
+  noG.forEach(r=>{if(!byS[r.sala])byS[r.sala]=0;byS[r.sala]+=parseFloat(r.potencia_kw||0);});
+  const entries=Object.entries(byS).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length)return;
+  const dark=isDark();
+  const gridC=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
+  const tickC=dark?'#64748b':'#6b7280';
+  salaBarChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:entries.map(e=>e[0]),
+      datasets:[{
+        label:'kW',
+        data:entries.map(e=>+e[1].toFixed(3)),
+        backgroundColor:entries.map(e=>salaColor(e[0])+'cc'),
+        borderColor:entries.map(e=>salaColor(e[0])),
+        borderWidth:1,
+        borderRadius:4,
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:dark?'#1e293b':'#1f2937',
+          titleColor:dark?'#94a3b8':'#9ca3af',
+          bodyColor:dark?'#f1f5f9':'#f9fafb',
+          borderColor:dark?'#334155':'#374151',
+          borderWidth:1,
+          padding:10,
+          callbacks:{label:c=>` ${c.parsed.y.toFixed(2)} kW`}
+        }
+      },
+      scales:{
+        x:{grid:{color:gridC},ticks:{color:tickC,font:{family:"'IBM Plex Mono'",size:10},maxRotation:35}},
+        y:{grid:{color:gridC},ticks:{color:tickC,font:{family:"'IBM Plex Mono'",size:10}},title:{display:true,text:'kW',color:tickC,font:{size:10}}}
+      }
+    }
+  });
 }
 
 // ── GENERAL vs CIRCUITOS ──
@@ -654,6 +741,7 @@ function renderDetail(){
       <td class="num">${fmt(r.corriente_t,2)}</td>
       <td class="num">${fmt(r.potencia_kw,3)}</td>
       <td>${badgeE(r.estado_disyuntor)}</td>
+      <td>${r.es_circuito_general?'<span class="badge badge-gral">GRAL</span>':''}</td>
     </tr>`).join('');
   // Footer con totales
   const sumR=detailData.reduce((s,r)=>s+(parseFloat(r.corriente_r)||0),0);
@@ -667,6 +755,7 @@ function renderDetail(){
       <td class="num">${sumS.toFixed(2)}</td>
       <td class="num">${sumT.toFixed(2)}</td>
       <td class="num">${sumKW.toFixed(3)}</td>
+      <td></td>
       <td></td>
     </tr>`;
 }
