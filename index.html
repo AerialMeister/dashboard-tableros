@@ -199,6 +199,11 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
 
 .empty{text-align:center;padding:40px 20px;color:var(--text4);font-size:13px;}
 
+/* ADVERTENCIA VARIACIÓN */
+.var-card{position:relative;}
+.var-warn{position:absolute;top:8px;right:8px;font-size:16px;line-height:1;cursor:default;}
+.var-search-highlight{border-color:var(--blue)!important;box-shadow:0 0 0 2px rgba(59,130,246,0.15)!important;}
+
 /* DRILL-DOWN TABLEROS */
 .tablero-grid{display:flex;flex-direction:column;gap:10px;max-height:380px;overflow-y:auto;}
 .tablero-grid::-webkit-scrollbar{width:4px;}
@@ -320,7 +325,11 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
   <div class="panel">
     <div class="panel-header">
       <div class="panel-title">Variación mensual por sala</div>
-      <div style="font-size:11px;color:var(--text3)">Comparativa respecto al mes anterior</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <input type="text" id="var-buscar" placeholder="Buscar sala…" oninput="filtrarVariacion()"
+          style="background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:12px;padding:5px 10px;outline:none;width:180px;">
+        <div style="font-size:11px;color:var(--text3)">Ordenado por mayor variación</div>
+      </div>
     </div>
     <div class="panel-body" id="var-panel"><div class="empty">Cargando…</div></div>
   </div>
@@ -406,6 +415,25 @@ function toggleTheme(){
 
 // ── UTILS ──
 const noGral=r=>!r.es_circuito_general;
+const SALAS_TIC=new Set(['TIC 1','TIC 2','TIC 3','TIC 4','TIC 5','TIC 6']);
+
+// Para salas TIC: kW = suma de GRAL; para el resto: suma de circuitos normales
+function kwPorSala(rows){
+  const result={};
+  // Salas TIC: sumar GRAL
+  const ticRows=rows.filter(r=>SALAS_TIC.has(r.sala)&&r.es_circuito_general);
+  ticRows.forEach(r=>{
+    if(!result[r.sala])result[r.sala]=0;
+    result[r.sala]+=parseFloat(r.potencia_kw||0);
+  });
+  // Resto de salas: sumar circuitos normales
+  const noTicRows=rows.filter(r=>!SALAS_TIC.has(r.sala)&&!r.es_circuito_general);
+  noTicRows.forEach(r=>{
+    if(!result[r.sala])result[r.sala]=0;
+    result[r.sala]+=parseFloat(r.potencia_kw||0);
+  });
+  return result;
+}
 const fmt=(n,d=2)=>(n===null||n===undefined||isNaN(n))?'—':parseFloat(n).toFixed(d);
 function setStatus(s,t){document.getElementById('sdot').className='sdot '+s;document.getElementById('stxt').textContent=t;}
 function showErr(m){const e=document.getElementById('err-bar');e.textContent=m;e.style.display='block';}
@@ -568,9 +596,12 @@ function renderAll(){
 // ── METRICS ──
 function renderMetrics(){
   const noG=filtered.filter(noGral);
-  const kwT=noG.reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0);
-  const kwAC=noG.filter(r=>r.tipo_corriente==='AC').reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0);
-  const kwDC=noG.filter(r=>r.tipo_corriente==='DC').reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0);
+  const bySalaKW=kwPorSala(filtered);
+  const kwT=Object.values(bySalaKW).reduce((s,v)=>s+v,0);
+  const kwAC=noG.filter(r=>r.tipo_corriente==='AC'&&!SALAS_TIC.has(r.sala)).reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0)
+    + filtered.filter(r=>SALAS_TIC.has(r.sala)&&r.es_circuito_general&&r.tipo_corriente==='AC').reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0);
+  const kwDC=noG.filter(r=>r.tipo_corriente==='DC'&&!SALAS_TIC.has(r.sala)).reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0)
+    + filtered.filter(r=>SALAS_TIC.has(r.sala)&&r.es_circuito_general&&r.tipo_corriente==='DC').reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0);
   document.getElementById('m-kw').textContent=fmt(kwT);
   document.getElementById('m-kw-sub').textContent=`${noG.length} mediciones`;
   document.getElementById('m-ac').textContent=fmt(kwAC);
@@ -612,9 +643,7 @@ let salaBarChart=null;
 function renderSalaBarChart(){
   if(salaBarChart){salaBarChart.destroy();salaBarChart=null;}
   const ctx=document.getElementById('sala-bar-chart');
-  const noG=filtered.filter(noGral);
-  const byS={};
-  noG.forEach(r=>{if(!byS[r.sala])byS[r.sala]=0;byS[r.sala]+=parseFloat(r.potencia_kw||0);});
+  const byS=kwPorSala(filtered);
   const entries=Object.entries(byS).sort((a,b)=>b[1]-a[1]);
   if(!entries.length)return;
   const dark=isDark();
@@ -737,11 +766,12 @@ function renderGralChart(){
 }
 
 // ── VARIACIÓN MENSUAL ──
+let varData=[]; // cache para filtrar sin recargar
+
 async function renderVariacion(){
   const panel=document.getElementById('var-panel');
   panel.innerHTML='<div class="empty">Cargando variación…</div>';
 
-  // Traer TODOS los períodos desde Supabase (ignorar filtro de mes actual)
   let todosRows=[];
   try{
     todosRows=await sbFetch('&order=periodo.asc,sala.asc,id.asc');
@@ -755,36 +785,63 @@ async function renderVariacion(){
     panel.innerHTML='<div class="empty">Se necesitan al menos 2 períodos para mostrar variación</div>';
     return;
   }
-  // Usar los 2 últimos períodos disponibles
   const p2=periodos[periodos.length-1];
   const p1=periodos[periodos.length-2];
+
   const kw1={},kw2={};
-  todosRows.filter(r=>!r.es_circuito_general).forEach(r=>{
-    const kw=parseFloat(r.potencia_kw||0);
-    const per=r.periodo.slice(0,7);
-    if(per===p1){if(!kw1[r.sala])kw1[r.sala]=0;kw1[r.sala]+=kw;}
-    if(per===p2){if(!kw2[r.sala])kw2[r.sala]=0;kw2[r.sala]+=kw;}
-  });
-  const salas=[...new Set([...Object.keys(kw1),...Object.keys(kw2)])].sort();
-  if(!salas.length){panel.innerHTML='<div class="empty">Sin datos</div>';return;}
+  // Usar kwPorSala para respetar la lógica TIC=GRAL
+  const rows1=todosRows.filter(r=>r.periodo.slice(0,7)===p1);
+  const rows2=todosRows.filter(r=>r.periodo.slice(0,7)===p2);
+  const bySala1=kwPorSala(rows1);
+  const bySala2=kwPorSala(rows2);
+
+  const salas=[...new Set([...Object.keys(bySala1),...Object.keys(bySala2)])].sort();
+
+  // Construir datos y ordenar por magnitud de variación % (mayor primero)
+  varData=salas.map(sala=>{
+    const v1=bySala1[sala]||0;
+    const v2=bySala2[sala]||0;
+    const diff=v2-v1;
+    const pct=v1?(diff/v1*100):0;
+    return {sala,v1,v2,diff,pct};
+  }).sort((a,b)=>Math.abs(b.pct)-Math.abs(a.pct));
+
+  // Formatear períodos para mostrar
+  const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const fmtPer=p=>{const[y,m]=p.split('-');return `${meses[parseInt(m)-1]} ${y}`;};
+
+  window._varP1=p1; window._varP2=p2; window._varFmtPer=fmtPer;
+  filtrarVariacion();
+}
+
+function filtrarVariacion(){
+  const buscar=(document.getElementById('var-buscar')?.value||'').toLowerCase();
+  const panel=document.getElementById('var-panel');
+  const p1=window._varP1||'';
+  const p2=window._varP2||'';
+  const fmtPer=window._varFmtPer||(p=>p);
+  if(!varData.length){return;}
+
+  const datos=buscar?varData.filter(d=>d.sala.toLowerCase().includes(buscar)):varData;
+  if(!datos.length){panel.innerHTML='<div class="empty">Sin resultados</div>';return;}
+
+  const cards=datos.map(({sala,v1,v2,diff,pct})=>{
+    const cls=diff>0.05?'var-pos':diff<-0.05?'var-neg':'var-neu';
+    const arrow=diff>0.05?'▲':diff<-0.05?'▼':'—';
+    const sign=diff>0?'+':'';
+    const warn=Math.abs(pct)>=10?'<span class="var-warn" title="Variación ≥ 10%">⚠️</span>':'';
+    return `<div class="var-card" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;flex-direction:column;gap:4px">
+      ${warn}
+      <div style="font-size:11px;font-weight:600;color:var(--text2)">${sala}</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--text)">${v2.toFixed(2)} <span style="font-size:11px;color:var(--text3)">kW</span></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px" class="${cls}">${arrow} ${sign}${diff.toFixed(2)} kW (${sign}${pct.toFixed(1)}%)</div>
+      <div style="font-size:10px;color:var(--text4)">vs ${fmtPer(p1)}: ${v1.toFixed(2)} kW</div>
+    </div>`;
+  }).join('');
+
   panel.innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
-      ${salas.map(sala=>{
-        const v1=kw1[sala]||0,v2=kw2[sala]||0;
-        const diff=v2-v1;
-        const pct=v1?((diff/v1)*100):0;
-        const cls=diff>0.05?'var-pos':diff<-0.05?'var-neg':'var-neu';
-        const arrow=diff>0.05?'▲':diff<-0.05?'▼':'—';
-        const sign=diff>0.05?'+':'';
-        return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;flex-direction:column;gap:4px">
-          <div style="font-size:11px;font-weight:600;color:var(--text2)">${sala}</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--text)">${v2.toFixed(2)} <span style="font-size:11px;color:var(--text3)">kW</span></div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:12px" class="${cls}">${arrow} ${sign}${diff.toFixed(2)} kW (${sign}${pct.toFixed(1)}%)</div>
-          <div style="font-size:10px;color:var(--text4)">vs ${p1.slice(0,7)}: ${v1.toFixed(2)} kW</div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div style="margin-top:10px;font-size:11px;color:var(--text4)">Período actual: ${p2.slice(0,7)} · Período anterior: ${p1.slice(0,7)}</div>`;
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">${cards}</div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text4)">Período actual: ${fmtPer(p2)} · Período anterior: ${fmtPer(p1)} · ⚠️ variación ≥ 10%</div>`;
 }
 
 // ── DETAIL TABLE ──
