@@ -735,7 +735,11 @@ function renderSalaBarChart(){
       onClick:(e,els)=>{
         if(els.length>0){
           const sala=entries[els[0].index][0];
-          renderDrilldown(sala);
+          if(selectedSala===sala){
+            clearDrilldown(); // deseleccionar al clicar la misma barra
+          } else {
+            renderDrilldown(sala);
+          }
         }
       },
       scales:{
