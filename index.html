@@ -535,6 +535,16 @@ function renderMetrics(){
   });
 }
 
+// ── PERÍODO ──
+function renderPeriodo(){
+  const byS={};
+  filtered.forEach(r=>{if(!byS[r.sala]||r.periodo>byS[r.sala])byS[r.sala]=r.periodo;});
+  const entries=Object.entries(byS).sort((a,b)=>a[0].localeCompare(b[0]));
+  document.getElementById('periodo-panel').innerHTML=entries.length
+    ?`<div class="sala-list">${entries.map(([sala,per])=>`<div class="sala-row"><div class="sala-name" title="${sala}">${sala}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);margin-left:auto">${per||'—'}</div></div>`).join('')}</div>`
+    :'<div class="empty">Sin datos</div>';
+}
+
 // ── GENERAL vs CIRCUITOS ──
 function renderGralChart(){
   if(gralChart){gralChart.destroy();gralChart=null;}
