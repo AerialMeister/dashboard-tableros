@@ -268,7 +268,7 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
     <div class="metric-card" style="--accent:var(--blue)">
       <div class="metric-label">Potencia Total</div>
       <div class="metric-value" id="m-kw">—</div>
-      <div class="metric-unit">kW · sin GRAL/BP</div>
+      <div class="metric-unit">kW · suma circuitos (TIC=GRAL)</div>
       <div class="metric-sub" id="m-kw-sub"></div>
     </div>
     <div class="metric-card" style="--accent:var(--blue)">
@@ -479,6 +479,7 @@ async function loadData(){
     }
     // Traer también todos los períodos para histórico (sin filtro de mes)
     allRows=await sbFetch(params);
+    await cargarMesAnterior();
     buildFilters();applyFilters();
     setStatus('ok',`${allRows.length.toLocaleString()} filas`);
     document.getElementById('last-updated').textContent=new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
@@ -608,8 +609,10 @@ function renderMetrics(){
   document.getElementById('m-ac-sub').textContent=kwT?`${(kwAC/kwT*100).toFixed(0)}% del total`:'';
   document.getElementById('m-dc').textContent=fmt(kwDC);
   document.getElementById('m-dc-sub').textContent=kwT?`${(kwDC/kwT*100).toFixed(0)}% del total`:'';
+  // Corriente máx: solo circuitos normales (sin GRAL/BP/A/B/C)
+  const circNorm=filtered.filter(r=>!r.es_circuito_general);
   let maxI=0,maxRow=null;
-  noG.forEach(r=>['corriente_r','corriente_s','corriente_t'].forEach(c=>{const v=parseFloat(r[c]||0);if(v>maxI){maxI=v;maxRow=r;}}));
+  circNorm.forEach(r=>['corriente_r','corriente_s','corriente_t'].forEach(c=>{const v=parseFloat(r[c]||0);if(v>maxI){maxI=v;maxRow=r;}}));
   document.getElementById('m-imax').textContent=fmt(maxI,1);
   document.getElementById('m-imax-sub').textContent=maxRow?`${maxRow.sala} / ${maxRow.cto}`:'';
   // Circuitos activos donut
@@ -640,6 +643,32 @@ function renderPeriodo(){
 
 // ── BARRAS POR SALA ──
 let salaBarChart=null;
+let _kwMesAnterior={}; // kW mes anterior para la línea
+
+async function cargarMesAnterior(){
+  // Determinar el mes anterior al seleccionado
+  const mesSel=document.getElementById('f-mes').value;
+  if(!mesSel){_kwMesAnterior={};return;}
+  // Traer todos los períodos disponibles
+  try{
+    const res=await fetch(`${SB_URL}/rest/v1/${TABLE}?select=periodo&order=periodo.asc&limit=5000`,{
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json','Prefer':'count=none'}
+    });
+    const data=await res.json();
+    const periodos=[...new Set(data.map(r=>(r.periodo||'').slice(0,7)).filter(Boolean))].sort();
+    const idx=periodos.indexOf(mesSel);
+    if(idx<=0){_kwMesAnterior={};return;}
+    const mesAnt=periodos[idx-1];
+    // Traer datos del mes anterior
+    const [y,m]=mesAnt.split('-').map(Number);
+    const hasta=new Date(y,m,0).toISOString().slice(0,10);
+    const rows=await sbFetch(`&periodo=gte.${mesAnt}-01&periodo=lte.${hasta}&order=id.asc`);
+    _kwMesAnterior=kwPorSala(rows);
+  }catch(e){
+    _kwMesAnterior={};
+  }
+}
+
 function renderSalaBarChart(){
   if(salaBarChart){salaBarChart.destroy();salaBarChart=null;}
   const ctx=document.getElementById('sala-bar-chart');
@@ -649,32 +678,58 @@ function renderSalaBarChart(){
   const dark=isDark();
   const gridC=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
   const tickC=dark?'#64748b':'#6b7280';
+
+  // Datos línea mes anterior (en el mismo orden que las barras)
+  const lineData=entries.map(e=>_kwMesAnterior[e[0]]!=null?+(_kwMesAnterior[e[0]].toFixed(3)):null);
+  const hayAnt=lineData.some(v=>v!==null);
+
+  const datasets=[{
+    type:'bar',
+    label:'Mes actual',
+    data:entries.map(e=>+e[1].toFixed(3)),
+    backgroundColor:entries.map(e=>salaColor(e[0])+'cc'),
+    borderColor:entries.map(e=>salaColor(e[0])),
+    borderWidth:1,
+    borderRadius:4,
+    order:2,
+  }];
+
+  if(hayAnt){
+    datasets.push({
+      type:'line',
+      label:'Mes anterior',
+      data:lineData,
+      borderColor:'rgba(100,116,139,0.8)',
+      backgroundColor:'transparent',
+      borderWidth:2,
+      borderDash:[4,3],
+      pointBackgroundColor:'rgba(100,116,139,0.8)',
+      pointRadius:4,
+      pointHoverRadius:6,
+      tension:0.3,
+      order:1,
+      spanGaps:true,
+    });
+  }
+
   salaBarChart=new Chart(ctx,{
     type:'bar',
-    data:{
-      labels:entries.map(e=>e[0]),
-      datasets:[{
-        label:'kW',
-        data:entries.map(e=>+e[1].toFixed(3)),
-        backgroundColor:entries.map(e=>salaColor(e[0])+'cc'),
-        borderColor:entries.map(e=>salaColor(e[0])),
-        borderWidth:1,
-        borderRadius:4,
-      }]
-    },
+    data:{labels:entries.map(e=>e[0]),datasets},
     options:{
       responsive:true,
       maintainAspectRatio:false,
       plugins:{
-        legend:{display:false},
+        legend:{
+          display:hayAnt,
+          labels:{color:tickC,font:{family:"'IBM Plex Mono'",size:10},boxWidth:12,padding:12}
+        },
         tooltip:{
           backgroundColor:dark?'#1e293b':'#1f2937',
           titleColor:dark?'#94a3b8':'#9ca3af',
           bodyColor:dark?'#f1f5f9':'#f9fafb',
           borderColor:dark?'#334155':'#374151',
-          borderWidth:1,
-          padding:10,
-          callbacks:{label:c=>` ${c.parsed.y.toFixed(2)} kW`}
+          borderWidth:1,padding:10,
+          callbacks:{label:c=>c.parsed.y!=null?` ${c.dataset.label}: ${c.parsed.y.toFixed(2)} kW`:null}
         }
       },
       onClick:(e,els)=>{
@@ -908,11 +963,12 @@ document.getElementById('f-mes').addEventListener('change',loadData);
 (async function init(){
   try{
     // Traer todos los períodos disponibles para poblar el select
-    const res=await fetch(`${SB_URL}/rest/v1/${TABLE}?select=periodo&order=periodo.desc`,{
+    // Usar group by para traer solo períodos únicos eficientemente
+    const res=await fetch(`${SB_URL}/rest/v1/${TABLE}?select=periodo&order=periodo.desc&limit=5000`,{
       headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json','Prefer':'count=none'}
     });
     const data=await res.json();
-    const periodos=[...new Set(data.map(r=>r.periodo.slice(0,7)))].sort().reverse();
+    const periodos=[...new Set(data.map(r=>(r.periodo||'').slice(0,7)).filter(Boolean))].sort().reverse();
     const sel=document.getElementById('f-mes');
     sel.innerHTML='<option value="">Todos</option>';
     periodos.forEach(p=>{
