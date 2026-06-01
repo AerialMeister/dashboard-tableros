@@ -284,38 +284,17 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
     </div>
   </div>
 
-  <!-- MAIN CHART + SALA LIST -->
-  <div class="two-col">
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">Potencia kW</div>
-        <div class="tabs">
-          <button class="tab active" data-tab="evolucion">Evolución</button>
-          <button class="tab" data-tab="sala">Por Sala</button>
-          <button class="tab" data-tab="tablero">Por Tablero</button>
-        </div>
-      </div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="main-chart"></canvas></div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header"><div class="panel-title">Consumo por Sala</div></div>
-      <div class="panel-body"><div class="sala-list" id="sala-list"><div class="empty">Cargando…</div></div></div>
-    </div>
-  </div>
 
-  <!-- AC/DC + PERÍODO + GENERAL vs CIRCUITOS -->
-  <div class="three-col">
-    <div class="panel">
-      <div class="panel-header"><div class="panel-title">Proporción AC / DC</div></div>
-      <div class="panel-body"><div class="prop-wrap" id="prop-wrap"><div class="empty">Cargando…</div></div></div>
-    </div>
+
+  <!-- PERÍODO + GENERAL vs CIRCUITOS -->
+  <div class="two-col-eq">
     <div class="panel">
       <div class="panel-header"><div class="panel-title">Último período por sala</div></div>
       <div class="panel-body" id="periodo-panel"><div class="empty">Cargando…</div></div>
     </div>
     <div class="panel">
       <div class="panel-header"><div class="panel-title">General vs Suma circuitos</div></div>
-      <div class="panel-body"><div class="chart-wrap" style="height:200px"><canvas id="gral-chart"></canvas></div></div>
+      <div class="panel-body"><div class="chart-wrap" style="height:240px"><canvas id="gral-chart"></canvas></div></div>
     </div>
   </div>
 
@@ -349,9 +328,9 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
             <th>Estado</th>
           </tr>
           <tr class="filter-row" id="col-filters">
-            <th><input type="text" id="cf-sala" placeholder="Filtrar…" oninput="applyColFilters()"></th>
-            <th><input type="text" id="cf-tablero" placeholder="Filtrar…" oninput="applyColFilters()"></th>
-            <th><input type="text" id="cf-cto" placeholder="Filtrar…" oninput="applyColFilters()"></th>
+            <th><select id="cf-sala" onchange="applyColFilters()"><option value="">Todas</option></select></th>
+            <th><select id="cf-tablero" onchange="applyColFilters()"><option value="">Todos</option></select></th>
+            <th><select id="cf-cto" onchange="applyColFilters()"><option value="">Todos</option></select></th>
             <th><select id="cf-tipo" onchange="applyColFilters()"><option value="">Todos</option><option>AC</option><option>DC</option></select></th>
             <th></th><th></th><th></th><th></th>
             <th><select id="cf-estado" onchange="applyColFilters()"><option value="">Todos</option><option>ON</option><option>OFF</option></select></th>
@@ -371,7 +350,7 @@ const TABLE='mediciones';
 const PAGE=1000;
 
 let allRows=[],filtered=[],colFiltered=[],sortCol='potencia_kw',sortAsc=false;
-let mainChart=null,circDonut=null,gralChart=null,currentTab='evolucion',isLoading=false;
+let circDonut=null,gralChart=null,isLoading=false;
 
 // ── THEME ──
 function toggleTheme(){
@@ -482,16 +461,30 @@ function applyFilters(){
   colFiltered=[...filtered];
   renderAll();
 }
+function populateColFilters(){
+  // Poblar selects de columna con valores únicos de filtered
+  const sel=(id,vals)=>{
+    const el=document.getElementById(id);
+    const cur=el.value;
+    const first=el.options[0].text;
+    el.innerHTML=`<option value="">${first}</option>`;
+    vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;if(v===cur)o.selected=true;el.appendChild(o);});
+  };
+  sel('cf-sala',[...new Set(filtered.map(r=>r.sala).filter(Boolean))].sort());
+  sel('cf-tablero',[...new Set(filtered.map(r=>r.tablero).filter(Boolean))].sort());
+  sel('cf-cto',[...new Set(filtered.map(r=>r.cto).filter(Boolean))].sort());
+}
+
 function applyColFilters(){
-  const fs=document.getElementById('cf-sala').value.toLowerCase();
-  const ft=document.getElementById('cf-tablero').value.toLowerCase();
-  const fc=document.getElementById('cf-cto').value.toLowerCase();
+  const fs=document.getElementById('cf-sala').value;
+  const ft=document.getElementById('cf-tablero').value;
+  const fc=document.getElementById('cf-cto').value;
   const fti=document.getElementById('cf-tipo').value;
   const fe=document.getElementById('cf-estado').value;
   colFiltered=filtered.filter(r=>{
-    if(fs&&!(r.sala||'').toLowerCase().includes(fs))return false;
-    if(ft&&!(r.tablero||'').toLowerCase().includes(ft))return false;
-    if(fc&&!(r.cto||'').toLowerCase().includes(fc))return false;
+    if(fs&&r.sala!==fs)return false;
+    if(ft&&r.tablero!==ft)return false;
+    if(fc&&r.cto!==fc)return false;
     if(fti&&r.tipo_corriente!==fti)return false;
     if(fe&&(r.estado_disyuntor||'').toUpperCase()!==fe)return false;
     return true;
@@ -502,13 +495,11 @@ function applyColFilters(){
 // ── RENDER ALL ──
 function renderAll(){
   renderMetrics();
-  renderMainChart();
-  renderSalaList();
-  renderProp();
   renderPeriodo();
   renderGralChart();
   renderVariacion();
   colFiltered=[...filtered];
+  populateColFilters();
   applyColFilters();
 }
 
@@ -544,108 +535,47 @@ function renderMetrics(){
   });
 }
 
-// ── CHART OPTS ──
-function baseOpts(){
-  const dark=isDark();
-  const gridC=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
-  const tickC=dark?'#64748b':'#6b7280';
-  return{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{backgroundColor:dark?'#1e293b':'#1f2937',titleColor:dark?'#94a3b8':'#9ca3af',bodyColor:dark?'#f1f5f9':'#f9fafb',borderColor:dark?'#334155':'#374151',borderWidth:1,padding:10,callbacks:{label:c=>` ${(c.parsed.y??c.parsed.x).toFixed(2)} kW`}}},
-    scales:{x:{grid:{color:gridC},ticks:{color:tickC,font:{family:"'IBM Plex Mono'",size:10},maxRotation:40}},y:{grid:{color:gridC},ticks:{color:tickC,font:{family:"'IBM Plex Mono'",size:10}}}}};
-}
-
-// ── MAIN CHART ──
-function renderMainChart(){
-  if(mainChart){mainChart.destroy();mainChart=null;}
-  const ctx=document.getElementById('main-chart');
-  const noG=filtered.filter(noGral);
-  const opts=baseOpts();
-  if(currentTab==='evolucion'){
-    const byP={};
-    noG.forEach(r=>{const p=(r.periodo||'').slice(0,7);if(!byP[p])byP[p]=0;byP[p]+=parseFloat(r.potencia_kw||0);});
-    const labels=Object.keys(byP).sort();
-    mainChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'kW',data:labels.map(p=>+byP[p].toFixed(3)),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',fill:true,tension:0.3,pointRadius:labels.length<15?4:0,pointHoverRadius:5}]},options:opts});
-  }else if(currentTab==='sala'){
-    const byS={};noG.forEach(r=>{if(!byS[r.sala])byS[r.sala]=0;byS[r.sala]+=parseFloat(r.potencia_kw||0);});
-    const entries=Object.entries(byS).sort((a,b)=>b[1]-a[1]);
-    mainChart=new Chart(ctx,{type:'bar',data:{labels:entries.map(e=>e[0]),datasets:[{label:'kW',data:entries.map(e=>+e[1].toFixed(3)),backgroundColor:entries.map(e=>salaColor(e[0])+'cc'),borderColor:entries.map(e=>salaColor(e[0])),borderWidth:1,borderRadius:4}]},options:opts});
-  }else{
-    const byT={};noG.forEach(r=>{const k=`${r.sala}/${r.tablero||'—'}`;if(!byT[k])byT[k]=0;byT[k]+=parseFloat(r.potencia_kw||0);});
-    const entries=Object.entries(byT).sort((a,b)=>b[1]-a[1]).slice(0,20);
-    mainChart=new Chart(ctx,{type:'bar',data:{labels:entries.map(e=>e[0]),datasets:[{label:'kW',data:entries.map(e=>+e[1].toFixed(3)),backgroundColor:'rgba(59,130,246,0.2)',borderColor:'#3b82f6',borderWidth:1,borderRadius:4}]},options:{...opts,indexAxis:'y'}});
-  }
-}
-
-// ── SALA LIST ──
-function renderSalaList(){
-  const noG=filtered.filter(noGral);
-  const byS={};noG.forEach(r=>{if(!byS[r.sala])byS[r.sala]=0;byS[r.sala]+=parseFloat(r.potencia_kw||0);});
-  const entries=Object.entries(byS).sort((a,b)=>b[1]-a[1]);
-  const max=entries[0]?.[1]||1;
-  const el=document.getElementById('sala-list');
-  if(!entries.length){el.innerHTML='<div class="empty">Sin datos</div>';return;}
-  el.innerHTML=entries.map(([sala,kw])=>`
-    <div class="sala-row">
-      <div class="sala-name" title="${sala}">${sala}</div>
-      <div class="sala-bar-wrap"><div class="sala-bar" style="width:${(kw/max*100).toFixed(1)}%;background:${salaColor(sala)}"></div></div>
-      <div class="sala-kw">${kw.toFixed(1)} kW</div>
-    </div>`).join('');
-}
-
-// ── PROPORCIÓN AC/DC ──
-function renderProp(){
-  const noG=filtered.filter(noGral);
-  let kwAC=0,kwDC=0;
-  noG.forEach(r=>{const v=parseFloat(r.potencia_kw||0);if(r.tipo_corriente==='DC')kwDC+=v;else kwAC+=v;});
-  const total=kwAC+kwDC||1;
-  document.getElementById('prop-wrap').innerHTML=`
-    <div class="prop-item">
-      <div class="prop-header"><span class="prop-label">AC</span><span class="prop-val">${kwAC.toFixed(2)} kW</span></div>
-      <div class="prop-track"><div class="prop-fill ac" style="width:${(kwAC/total*100).toFixed(1)}%"><span>${(kwAC/total*100).toFixed(1)}%</span></div></div>
-    </div>
-    <div class="prop-item">
-      <div class="prop-header"><span class="prop-label">DC</span><span class="prop-val">${kwDC.toFixed(2)} kW</span></div>
-      <div class="prop-track"><div class="prop-fill dc" style="width:${(kwDC/total*100).toFixed(1)}%"><span>${(kwDC/total*100).toFixed(1)}%</span></div></div>
-    </div>`;
-}
-
-// ── PERÍODO ──
-function renderPeriodo(){
-  const byS={};
-  filtered.forEach(r=>{if(!byS[r.sala]||r.periodo>byS[r.sala])byS[r.sala]=r.periodo;});
-  const entries=Object.entries(byS).sort((a,b)=>a[0].localeCompare(b[0]));
-  document.getElementById('periodo-panel').innerHTML=entries.length
-    ?`<div class="sala-list">${entries.map(([sala,per])=>`<div class="sala-row"><div class="sala-name" title="${sala}">${sala}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);margin-left:auto">${per||'—'}</div></div>`).join('')}</div>`
-    :'<div class="empty">Sin datos</div>';
-}
-
 // ── GENERAL vs CIRCUITOS ──
 function renderGralChart(){
   if(gralChart){gralChart.destroy();gralChart=null;}
   const ctx=document.getElementById('gral-chart');
-  // Potencia por sala (sin GRAL)
   const noG=filtered.filter(noGral);
   const byS={};noG.forEach(r=>{if(!byS[r.sala])byS[r.sala]=0;byS[r.sala]+=parseFloat(r.potencia_kw||0);});
-  // Potencia GRAL por sala
   const gral=filtered.filter(r=>r.es_circuito_general);
   const byG={};gral.forEach(r=>{if(!byG[r.sala])byG[r.sala]=0;byG[r.sala]+=parseFloat(r.potencia_kw||0);});
   const salas=Object.keys(byS).sort();
-  if(!salas.length){return;}
+  if(!salas.length)return;
   const dark=isDark();
   const gridC=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
   const tickC=dark?'#64748b':'#6b7280';
+  // Para salas sin General: usar suma circuitos como "Homologado" (verde)
+  // Para salas con General: mostrar el valor real del general (amarillo)
+  const gralData=salas.map(s=>{
+    const g=byG[s]||0;
+    return g>0?+(g.toFixed(2)):null;
+  });
+  const homoData=salas.map(s=>{
+    const g=byG[s]||0;
+    return g===0?+(byS[s]||0).toFixed(2):null;
+  });
   gralChart=new Chart(ctx,{
     type:'bar',
     data:{
       labels:salas,
       datasets:[
-        {label:'Suma circuitos',data:salas.map(s=>+(byS[s]||0).toFixed(2)),backgroundColor:'rgba(59,130,246,0.3)',borderColor:'#3b82f6',borderWidth:1,borderRadius:3},
-        {label:'General',data:salas.map(s=>+(byG[s]||0).toFixed(2)),backgroundColor:'rgba(234,179,8,0.3)',borderColor:'#ca8a04',borderWidth:1,borderRadius:3}
+        {label:'Suma circuitos',data:salas.map(s=>+(byS[s]||0).toFixed(2)),backgroundColor:'rgba(59,130,246,0.25)',borderColor:'#3b82f6',borderWidth:1,borderRadius:3},
+        {label:'General',data:gralData,backgroundColor:'rgba(234,179,8,0.35)',borderColor:'#ca8a04',borderWidth:1,borderRadius:3},
+        {label:'Homologado',data:homoData,backgroundColor:'rgba(5,150,105,0.35)',borderColor:'#059669',borderWidth:1,borderRadius:3},
       ]
     },
     options:{
       responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,labels:{color:tickC,font:{family:"'IBM Plex Mono'",size:9},boxWidth:10,padding:8}},tooltip:{backgroundColor:dark?'#1e293b':'#1f2937',titleColor:dark?'#94a3b8':'#9ca3af',bodyColor:dark?'#f1f5f9':'#f9fafb',borderColor:dark?'#334155':'#374151',borderWidth:1}},
+      plugins:{
+        legend:{display:true,labels:{color:tickC,font:{family:"'IBM Plex Mono'",size:9},boxWidth:10,padding:8}},
+        tooltip:{backgroundColor:dark?'#1e293b':'#1f2937',titleColor:dark?'#94a3b8':'#9ca3af',bodyColor:dark?'#f1f5f9':'#f9fafb',borderColor:dark?'#334155':'#374151',borderWidth:1,
+          callbacks:{label:ctx=>{if(ctx.parsed.y===null)return null;return ` ${ctx.dataset.label}: ${ctx.parsed.y} kW`;}}
+        }
+      },
       scales:{x:{grid:{color:gridC},ticks:{color:tickC,font:{size:9},maxRotation:45}},y:{grid:{color:gridC},ticks:{color:tickC,font:{size:9}}}}
     }
   });
@@ -744,12 +674,7 @@ function exportCSV(){
 }
 
 // ── EVENTS ──
-document.querySelectorAll('.tab').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');currentTab=btn.dataset.tab;renderMainChart();
-  });
-});
+
 document.getElementById('f-sala').addEventListener('change',()=>{updateTableroFilter();applyFilters();});
 document.getElementById('f-tablero').addEventListener('change',()=>{updateCTOFilter();applyFilters();});
 document.getElementById('f-cto').addEventListener('change',applyFilters);
