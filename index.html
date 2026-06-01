@@ -651,11 +651,17 @@ async function cargarMesAnterior(){
   if(!mesSel){_kwMesAnterior={};return;}
   // Traer todos los períodos disponibles
   try{
-    const res=await fetch(`${SB_URL}/rest/v1/${TABLE}?select=periodo&order=periodo.asc&limit=5000`,{
-      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json','Prefer':'count=none'}
-    });
-    const data=await res.json();
-    const periodos=[...new Set(data.map(r=>(r.periodo||'').slice(0,7)).filter(Boolean))].sort();
+    let allP=new Set();let off2=0;
+    while(true){
+      const rp=await fetch(`${SB_URL}/rest/v1/${TABLE}?select=periodo&order=periodo.asc&limit=1000&offset=${off2}`,{
+        headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json','Prefer':'count=none'}
+      });
+      const dp=await rp.json();
+      dp.forEach(r=>{if(r.periodo)allP.add(r.periodo.slice(0,7));});
+      if(dp.length<1000)break;
+      off2+=1000;
+    }
+    const periodos=[...allP].sort();
     const idx=periodos.indexOf(mesSel);
     if(idx<=0){_kwMesAnterior={};return;}
     const mesAnt=periodos[idx-1];
@@ -968,11 +974,19 @@ document.getElementById('f-mes').addEventListener('change',loadData);
   try{
     // Traer todos los períodos disponibles para poblar el select
     // Usar group by para traer solo períodos únicos eficientemente
-    const res=await fetch(`${SB_URL}/rest/v1/${TABLE}?select=periodo&order=periodo.desc&limit=5000`,{
-      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json','Prefer':'count=none'}
-    });
-    const data=await res.json();
-    const periodos=[...new Set(data.map(r=>(r.periodo||'').slice(0,7)).filter(Boolean))].sort().reverse();
+    // Usar RPC o agrupar — traer períodos únicos con offset paginado
+    let allPeriodos=new Set();
+    let off=0;
+    while(true){
+      const r2=await fetch(`${SB_URL}/rest/v1/${TABLE}?select=periodo&order=periodo.desc&limit=1000&offset=${off}`,{
+        headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json','Prefer':'count=none'}
+      });
+      const d2=await r2.json();
+      d2.forEach(r=>{if(r.periodo)allPeriodos.add(r.periodo.slice(0,7));});
+      if(d2.length<1000)break;
+      off+=1000;
+    }
+    const periodos=[...allPeriodos].sort().reverse();
     const sel=document.getElementById('f-mes');
     sel.innerHTML='<option value="">Todos</option>';
     periodos.forEach(p=>{
