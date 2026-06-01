@@ -1,161 +1,233 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard · Tableros Eléctricos</title>
+<title>Dashboard · Tableros Eléctricos · Nextstream</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+/* ── TOKENS LIGHT / DARK ─────────────────────────────── */
 :root {
-  --white:#ffffff;--gray-50:#f8f9fb;--gray-100:#f0f2f5;--gray-200:#e2e6ec;
-  --gray-300:#c8cfd8;--gray-400:#9aa3b0;--gray-500:#6b7585;--gray-700:#374151;
-  --gray-900:#111827;--blue:#1d4ed8;--blue-lt:#eff6ff;--blue-md:#bfdbfe;
-  --green:#059669;--green-lt:#ecfdf5;--amber:#d97706;--amber-lt:#fffbeb;
-  --red:#dc2626;--red-lt:#fef2f2;--purple:#7c3aed;--purple-lt:#f5f3ff;
-  --sans:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
-  --radius:8px;
-  --shadow-sm:0 1px 3px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.04);
-  --shadow:0 4px 12px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.05);
+  --bg:        #f8f9fb;
+  --bg2:       #ffffff;
+  --bg3:       #f0f2f5;
+  --border:    #e2e6ec;
+  --border2:   #c8cfd8;
+  --text:      #111827;
+  --text2:     #374151;
+  --text3:     #6b7585;
+  --text4:     #9aa3b0;
+  --blue:      #1d4ed8;
+  --blue-lt:   #eff6ff;
+  --green:     #059669;
+  --green-lt:  #ecfdf5;
+  --amber:     #d97706;
+  --amber-lt:  #fffbeb;
+  --red:       #dc2626;
+  --red-lt:    #fef2f2;
+  --yellow:    #ca8a04;
+  --yellow-lt: #fefce8;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.04);
+  --shadow:    0 4px 12px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.05);
+}
+[data-theme="dark"] {
+  --bg:        #0f1117;
+  --bg2:       #1a1d27;
+  --bg3:       #13161f;
+  --border:    #2a2d3a;
+  --border2:   #3a3d4a;
+  --text:      #f1f5f9;
+  --text2:     #cbd5e1;
+  --text3:     #94a3b8;
+  --text4:     #64748b;
+  --blue:      #3b82f6;
+  --blue-lt:   #1e3a5f;
+  --green:     #10b981;
+  --green-lt:  #064e3b;
+  --amber:     #f59e0b;
+  --amber-lt:  #451a03;
+  --red:       #ef4444;
+  --red-lt:    #450a0a;
+  --yellow:    #eab308;
+  --yellow-lt: #422006;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow:    0 4px 12px rgba(0,0,0,0.4);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--sans);background:var(--gray-50);color:var(--gray-900);font-size:14px;line-height:1.5;min-height:100vh;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh;transition:background 0.2s,color 0.2s;}
 
 /* LOADING */
-#loading{position:fixed;inset:0;background:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9999;transition:opacity 0.3s;}
+#loading{position:fixed;inset:0;background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9999;transition:opacity 0.3s;}
 #loading.hidden{opacity:0;pointer-events:none;}
-.spinner{width:36px;height:36px;border:3px solid var(--gray-200);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-#loading p{font-size:13px;color:var(--gray-500);font-family:var(--mono);}
+#loading p{font-size:13px;color:var(--text3);font-family:'IBM Plex Mono',monospace;}
 
 /* HEADER */
-header{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 2rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.brand{display:flex;align-items:center;gap:10px;}
-.brand-icon{width:28px;height:28px;background:var(--blue);border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;}
-.brand-name{font-size:15px;font-weight:600;color:var(--gray-900);letter-spacing:-0.01em;}
-.brand-name span{color:var(--blue);}
-.header-meta{display:flex;align-items:center;gap:16px;}
-.status-pill{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-500);font-family:var(--mono);}
-.status-dot{width:6px;height:6px;border-radius:50%;background:var(--gray-300);}
-.status-dot.ok{background:var(--green);}
-.status-dot.error{background:var(--red);}
-.status-dot.loading{background:var(--amber);animation:pulse 1s ease-in-out infinite;}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 2rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;transition:background 0.2s;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-logo{height:24px;width:auto;}
+.brand-logo .st0{fill:var(--blue);}
+.brand-sep{width:1px;height:20px;background:var(--border2);}
+.brand-name{font-size:13px;font-weight:500;color:var(--text3);letter-spacing:0.02em;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.status-pill{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--border2);}
+.sdot.ok{background:var(--green);}
+.sdot.error{background:var(--red);}
+.sdot.loading{background:var(--amber);animation:pulse 1s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-#last-updated{font-size:11px;color:var(--gray-400);font-family:var(--mono);}
+#last-updated{font-size:11px;color:var(--text4);font-family:'IBM Plex Mono',monospace;}
+
+/* THEME TOGGLE */
+.theme-btn{width:36px;height:20px;border-radius:10px;background:var(--border2);border:none;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;}
+.theme-btn::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--bg2);transition:transform 0.2s,background 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+[data-theme="dark"] .theme-btn{background:var(--blue);}
+[data-theme="dark"] .theme-btn::after{transform:translateX(16px);}
+.theme-label{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;}
 
 /* LAYOUT */
-main{max-width:1400px;margin:0 auto;padding:1.5rem 2rem 3rem;display:flex;flex-direction:column;gap:1.25rem;}
+main{max-width:1500px;margin:0 auto;padding:1.5rem 2rem 3rem;display:flex;flex-direction:column;gap:1.25rem;}
+
+/* ERROR */
+.err-bar{background:var(--red-lt);border:1px solid var(--red);border-radius:8px;color:var(--red);padding:10px 16px;font-size:13px;display:none;}
 
 /* TOOLBAR */
-.toolbar{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:0.875rem 1.25rem;display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;box-shadow:var(--shadow-sm);}
+.toolbar{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:0.875rem 1.25rem;display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;box-shadow:var(--shadow-sm);}
 .fg{display:flex;flex-direction:column;gap:4px;}
-.fg label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);}
-.fg select,.fg input[type=month]{background:var(--white);border:1px solid var(--gray-300);border-radius:6px;color:var(--gray-900);font-family:var(--mono);font-size:12px;padding:6px 10px;min-width:140px;cursor:pointer;transition:border-color 0.15s;outline:none;}
-.fg select:focus,.fg input[type=month]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(29,78,216,0.08);}
+.fg label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);}
+.fg select,.fg input[type=month]{background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 10px;min-width:140px;cursor:pointer;transition:border-color 0.15s;outline:none;}
+.fg select:focus,.fg input[type=month]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.12);}
 .toolbar-actions{margin-left:auto;display:flex;gap:8px;align-items:flex-end;}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;}
-.btn-primary{background:var(--blue);color:white;}
-.btn-primary:hover{background:#1e40af;}
-.btn-ghost{background:transparent;color:var(--gray-700);border:1px solid var(--gray-300);}
-.btn-ghost:hover{border-color:var(--gray-400);background:var(--gray-50);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{opacity:0.9;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);}
+.btn-ghost:hover{border-color:var(--border);background:var(--bg3);}
 
 /* METRICS */
 .metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;}
-.metric-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:1.25rem 1.5rem;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;transition:box-shadow 0.2s;}
+.metric-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.5rem;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;transition:box-shadow 0.2s,background 0.2s;}
 .metric-card:hover{box-shadow:var(--shadow);}
 .metric-card::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--accent,var(--blue));}
-.metric-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-500);}
-.metric-value{font-size:28px;font-weight:600;letter-spacing:-0.02em;color:var(--accent,var(--blue));line-height:1.1;font-family:var(--mono);}
-.metric-unit{font-size:11px;color:var(--gray-400);font-family:var(--mono);}
-.metric-sub{font-size:11px;color:var(--gray-400);margin-top:2px;}
+.metric-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);}
+.metric-value{font-size:28px;font-weight:600;letter-spacing:-0.02em;color:var(--accent,var(--blue));line-height:1.1;font-family:'IBM Plex Mono',monospace;}
+.metric-unit{font-size:11px;color:var(--text4);font-family:'IBM Plex Mono',monospace;}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+
+/* DONUT METRIC (circuitos activos) */
+.metric-donut{display:flex;align-items:center;gap:12px;}
+.donut-wrap{position:relative;width:64px;height:64px;flex-shrink:0;}
+.donut-wrap canvas{position:absolute;inset:0;}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.donut-pct{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);line-height:1;}
+.donut-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;}
+.donut-info{display:flex;flex-direction:column;gap:2px;}
+.donut-val{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:var(--green);line-height:1;}
+.donut-sub{font-size:11px;color:var(--text3);}
 
 /* PANELS */
-.panel{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;}
-.panel-header{padding:1rem 1.5rem;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-.panel-title{font-size:13px;font-weight:600;color:var(--gray-700);letter-spacing:-0.01em;}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-sm);overflow:hidden;transition:background 0.2s;}
+.panel-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.panel-title{font-size:13px;font-weight:600;color:var(--text2);letter-spacing:-0.01em;}
 .panel-body{padding:1.25rem 1.5rem;}
 .tabs{display:flex;gap:2px;}
-.tab{padding:4px 12px;border-radius:5px;font-size:12px;font-weight:500;color:var(--gray-500);cursor:pointer;background:transparent;border:none;transition:all 0.15s;}
-.tab:hover{color:var(--gray-700);background:var(--gray-100);}
+.tab{padding:4px 12px;border-radius:5px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;background:transparent;border:none;transition:all 0.15s;}
+.tab:hover{color:var(--text2);background:var(--bg3);}
 .tab.active{background:var(--blue-lt);color:var(--blue);}
 .chart-wrap{position:relative;height:280px;}
 
-/* LAYOUT ROWS */
-.two-col{display:grid;grid-template-columns:2fr 1fr;gap:1rem;}
-.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+/* AC/DC PROPORCIÓN */
+.prop-wrap{display:flex;flex-direction:column;gap:14px;}
+.prop-item{display:flex;flex-direction:column;gap:6px;}
+.prop-header{display:flex;justify-content:space-between;align-items:baseline;}
+.prop-label{font-size:13px;font-weight:600;color:var(--text2);}
+.prop-val{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text3);}
+.prop-track{height:28px;background:var(--bg3);border-radius:6px;overflow:hidden;position:relative;}
+.prop-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding:0 10px;transition:width 0.6s ease;}
+.prop-fill span{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fff;white-space:nowrap;}
+.prop-fill.ac{background:linear-gradient(90deg,#1d4ed8,#3b82f6);}
+.prop-fill.dc{background:linear-gradient(90deg,#ca8a04,#eab308);}
 
 /* SALA LIST */
 .sala-list{display:flex;flex-direction:column;gap:8px;}
 .sala-row{display:flex;align-items:center;gap:10px;}
-.sala-name{font-size:12px;color:var(--gray-700);width:110px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.sala-bar-wrap{flex:1;height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;}
-.sala-bar{height:100%;border-radius:3px;background:var(--blue);transition:width 0.5s ease;}
-.sala-kw{font-family:var(--mono);font-size:11px;color:var(--gray-500);width:60px;text-align:right;flex-shrink:0;}
+.sala-name{font-size:12px;color:var(--text2);width:100px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sala-bar-wrap{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.sala-bar{height:100%;border-radius:3px;transition:width 0.5s ease;}
+.sala-kw{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);width:60px;text-align:right;flex-shrink:0;}
 
-/* AC vs DC */
-.adc-block{display:flex;flex-direction:column;gap:14px;}
-.adc-item{display:flex;flex-direction:column;gap:4px;}
-.adc-header{display:flex;justify-content:space-between;align-items:baseline;}
-.adc-label{font-size:12px;font-weight:500;color:var(--gray-700);}
-.adc-val{font-family:var(--mono);font-size:11px;color:var(--gray-500);}
-.adc-track{height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden;}
-.adc-fill{height:100%;border-radius:4px;transition:width 0.6s ease;}
-.adc-fill.ac{background:var(--blue);}
-.adc-fill.dc{background:var(--purple);}
+/* GRID LAYOUTS */
+.two-col{display:grid;grid-template-columns:2fr 1fr;gap:1rem;}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+.two-col-eq{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
 
 /* DETAIL TABLE */
-.tbl-wrap{overflow-x:auto;max-height:360px;overflow-y:auto;}
+.tbl-wrap{overflow-x:auto;max-height:400px;overflow-y:auto;}
 .tbl-wrap::-webkit-scrollbar{width:4px;height:4px;}
-.tbl-wrap::-webkit-scrollbar-track{background:var(--gray-100);}
-.tbl-wrap::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:2px;}
+.tbl-wrap::-webkit-scrollbar-track{background:var(--bg3);}
+.tbl-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 table.detail{width:100%;border-collapse:collapse;font-size:12px;}
-table.detail thead{position:sticky;top:0;background:var(--gray-50);z-index:2;}
-table.detail th{padding:8px 12px;text-align:left;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-500);border-bottom:1px solid var(--gray-200);white-space:nowrap;cursor:pointer;user-select:none;}
-table.detail th:hover{color:var(--blue);}
-table.detail td{padding:8px 12px;border-bottom:1px solid var(--gray-100);color:var(--gray-700);white-space:nowrap;}
+table.detail thead{position:sticky;top:0;background:var(--bg3);z-index:2;}
+table.detail th{padding:8px 10px;text-align:left;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap;user-select:none;}
+table.detail th.sortable{cursor:pointer;}
+table.detail th.sortable:hover{color:var(--blue);}
+table.detail td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2);white-space:nowrap;}
 table.detail tr:last-child td{border-bottom:none;}
-table.detail tr:hover td{background:var(--gray-50);}
-table.detail .num{font-family:var(--mono);text-align:right;color:var(--gray-900);}
+table.detail tr:hover td{background:var(--bg3);}
+table.detail .num{font-family:'IBM Plex Mono',monospace;text-align:right;color:var(--text);}
+table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--blue);background:var(--bg3);padding:8px 10px;border-top:2px solid var(--border2);}
+
+/* FILTER ROW */
+.filter-row th{padding:4px 6px !important;}
+.filter-row input,.filter-row select{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;padding:3px 6px;outline:none;font-family:'IBM Plex Mono',monospace;}
+.filter-row input:focus,.filter-row select:focus{border-color:var(--blue);}
+
+/* BADGES */
 .badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;}
 .badge-ac{background:var(--blue-lt);color:var(--blue);}
-.badge-dc{background:var(--purple-lt);color:var(--purple);}
+.badge-dc{background:var(--yellow-lt);color:var(--yellow);}
 .badge-on{background:var(--green-lt);color:var(--green);}
-.badge-off{background:var(--gray-100);color:var(--gray-500);}
+.badge-off{background:var(--bg3);color:var(--text3);}
 .badge-gral{background:var(--amber-lt);color:var(--amber);}
 
-/* ERROR */
-.err-bar{background:var(--red-lt);border:1px solid #fca5a5;border-radius:var(--radius);color:var(--red);padding:10px 16px;font-size:13px;display:none;}
-.empty{text-align:center;padding:40px 20px;color:var(--gray-400);font-size:13px;}
+/* VARIACIÓN MENSUAL */
+.var-pos{color:var(--green);font-weight:600;}
+.var-neg{color:var(--red);font-weight:600;}
+.var-neu{color:var(--text3);}
 
-/* RESPONSIVE */
-@media(max-width:1100px){.two-col{grid-template-columns:1fr;}.three-col{grid-template-columns:1fr 1fr;}}
+.empty{text-align:center;padding:40px 20px;color:var(--text4);font-size:13px;}
+
+@media(max-width:1100px){.two-col{grid-template-columns:1fr;}.three-col{grid-template-columns:1fr 1fr;}.two-col-eq{grid-template-columns:1fr;}}
 @media(max-width:700px){main{padding:1rem;}.three-col{grid-template-columns:1fr;}.metrics-grid{grid-template-columns:1fr 1fr;}header{padding:0 1rem;}}
 </style>
 </head>
 <body>
 
-<div id="loading">
-  <div class="spinner"></div>
-  <p id="load-msg">Conectando a Supabase…</p>
-</div>
+<div id="loading"><div class="spinner"></div><p id="load-msg">Conectando…</p></div>
 
 <header>
   <div class="brand">
-    <div class="brand-icon">⚡</div>
-    <div class="brand-name">Tableros <span>Eléctricos</span></div>
+    <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 558.7 60.5">
+      <style>.st0{fill:var(--blue);}</style>
+      <g><polygon class="st0" points="116.4 .8 125.9 .8 154.6 45.9 154.9 45.9 154.9 .8 163.6 .8 163.6 59.6 153.9 59.6 125.4 14.9 125.2 14.9 125.2 59.6 116.4 59.6 116.4 .8"></polygon><path class="st0" d="M171,37.8c0-16.1,9.6-22.8,20.9-22.8s19.9,6.8,19.9,22.1,0,2.4-.2,3.3h-32.4c.7,9.2,5.3,13.4,13.1,13.4s9.5-1.9,11.4-7.1h7.6c-2.6,9.8-10.1,13.7-19,13.7s-21.2-6.9-21.2-22.6M203.7,34.1c-.2-7.6-4.5-12.4-11.9-12.4s-11.8,4-12.5,12.4h24.5Z"></path><polygon class="st0" points="229.2 37.5 214.3 15.9 223.6 15.9 233.9 31.3 244.2 15.9 253.6 15.9 238.7 37.5 254.2 59.6 244.8 59.6 233.9 43.7 222.9 59.6 213.7 59.6 229.2 37.5"></polygon><path class="st0" d="M265.3,48.5v-25.9h-7.1v-6.7h7.1V4.9h8.5v11h8.7v6.7h-8.7v24.5c0,4.3,1.4,6.2,6.1,6.2s1.8,0,3.1-.2v6.4c-1.6.4-3.5.7-5.5.7-7.3,0-12.3-3.1-12.3-11.7"></path><path class="st0" d="M288.6,41.8h8.9c.3,6.3,4.5,11.3,14.3,11.3s13.3-3.9,13.3-9.9-4.1-8.2-10.6-9.5l-7.9-1.6c-10-2-16.3-6.7-16.3-15.8s7.8-16.2,21.1-16.2,21.2,6.1,21.2,16.5h-8.9c0-5.6-4.4-9.1-12.5-9.1s-11.9,3.9-11.9,8.8,2.5,7.3,9.5,8.8l7.6,1.5c11.8,2.4,17.8,7.2,17.8,16.6s-9,17.4-22.5,17.4-23.1-7.3-23.1-18.7"></path><path class="st0" d="M345.9,48.5v-25.9h-7.1v-6.7h7.1V4.9h8.5v11h8.7v6.7h-8.7v24.5c0,4.3,1.4,6.2,6.1,6.2s1.8,0,3.1-.2v6.4c-1.6.4-3.5.7-5.5.7-7.3,0-12.3-3.1-12.3-11.7"></path><path class="st0" d="M370.5,15.9h8.5v10.1h.2c1.3-5.1,5.4-10.6,13.4-10.6s2.3,0,3.3.4v7.1c-1.1-.2-2.1-.2-3.2-.2-8.2,0-13.7,5.3-13.7,15.1v21.9h-8.5V15.9Z"></path><path class="st0" d="M399,37.8c0-16.1,9.6-22.8,20.9-22.8s19.9,6.8,19.9,22.1,0,2.4-.2,3.3h-32.4c.7,9.2,5.3,13.4,13.1,13.4s9.5-1.9,11.4-7.1h7.6c-2.6,9.8-10.1,13.7-19,13.7s-21.2-6.9-21.2-22.6M431.7,34.1c-.2-7.6-4.5-12.4-11.9-12.4s-11.8,4-12.5,12.4h24.5Z"></path><path class="st0" d="M445,48.2c0-8.4,6.1-11.9,14-12.8l10.9-1.3c4-.5,5.4-1.3,5.4-2.6v-1.2c0-7-3.6-8.8-9.8-8.8s-9.8,1.9-9.8,7.4v1h-8.2v-1.8c0-8.8,6.1-13.1,18.2-13.1s18.1,4.6,18.1,15.2v29.4h-8v-7.1h-.3c-.8,1.7-5,7.9-15.7,7.9s-14.6-3.6-14.6-12.3M461.8,53.8c9.2,0,13.5-5.7,13.5-10.4v-4.8c-.6.9-1.7,1.5-6,2l-8.2,1.1c-5.5.7-7.5,2.6-7.5,6.1s3,6.1,8.2,6.1"></path><path class="st0" d="M540.8,22.2c-6.1,0-10.4,4.3-10.4,12.1v25.3h-8.5v-25.3c0-7.8-3.1-12.1-9.4-12.1s-10.4,4.3-10.4,12.1v25.3h-8.5V15.9h8.5v8.8h.2c.7-3.3,4.9-9.6,13.5-9.6s11.4,2.9,13.5,9.9c1-3.5,5.3-9.9,14.5-9.9s14.9,5,14.9,17.3v27.2h-8.5v-25.3c0-7.8-3-12.1-9.4-12.1"></path><path class="st0" d="M101.1,26.9h-27c-4.7,0-9.3-1.1-13.6-3.2l-21.3-10.6c-3.9-2-8.3-3-12.7-3H0V.8h27c4.7,0,9.4,1.1,13.6,3.2l21.3,10.6c3.9,2,8.3,3,12.7,3h26.6ZM101.1,34.3h-26.6c-4.4,0-8.7-1-12.7-3l-21.3-10.6c-4.2-2.1-8.9-3.2-13.6-3.2H0v9.4h26.6c4.4,0,8.7,1,12.7,3l21.3,10.6c4.2,2.1,8.9,3.2,13.6,3.2h27ZM101.1,51.1h-26.6c-4.4,0-8.7-1-12.7-3l-21.3-10.6c-4.2-2.1-8.9-3.2-13.6-3.2H0v9.4h26.6c4.4,0,8.7,1,12.7,3l21.3,10.6c4.2,2.1,8.9,3.2,13.6,3.2h27ZM37.5,60.5l-12.5-6.2c-4.2-2.1-8.9-3.2-13.6-3.2H0v9.4h37.5ZM63.6.8l12.5,6.2c4.2,2.1,8.9,3.2,13.6,3.2h11.5V.8Z"></path></g>
+    </svg>
+    <div class="brand-sep"></div>
+    <div class="brand-name">Tableros Eléctricos</div>
   </div>
-  <div class="header-meta">
-    <div class="status-pill">
-      <div class="status-dot loading" id="sdot"></div>
-      <span id="stxt">Cargando</span>
-    </div>
+  <div class="header-right">
+    <div class="status-pill"><div class="sdot loading" id="sdot"></div><span id="stxt">Cargando</span></div>
     <div id="last-updated"></div>
+    <span class="theme-label" id="theme-label">Claro</span>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Alternar modo claro/oscuro"></button>
   </div>
 </header>
 
 <main>
   <div class="err-bar" id="err-bar"></div>
 
+  <!-- TOOLBAR -->
   <div class="toolbar">
     <div class="fg"><label>Período</label><input type="month" id="f-mes"></div>
     <div class="fg"><label>Sala</label><select id="f-sala"><option value="">Todas</option></select></div>
@@ -167,6 +239,7 @@ table.detail .num{font-family:var(--mono);text-align:right;color:var(--gray-900)
     </div>
   </div>
 
+  <!-- METRICS -->
   <div class="metrics-grid">
     <div class="metric-card" style="--accent:var(--blue)">
       <div class="metric-label">Potencia Total</div>
@@ -180,7 +253,7 @@ table.detail .num{font-family:var(--mono);text-align:right;color:var(--gray-900)
       <div class="metric-unit">kW</div>
       <div class="metric-sub" id="m-ac-sub"></div>
     </div>
-    <div class="metric-card" style="--accent:var(--purple)">
+    <div class="metric-card" style="--accent:var(--yellow)">
       <div class="metric-label">Potencia DC</div>
       <div class="metric-value" id="m-dc">—</div>
       <div class="metric-unit">kW</div>
@@ -192,14 +265,26 @@ table.detail .num{font-family:var(--mono);text-align:right;color:var(--gray-900)
       <div class="metric-unit">A</div>
       <div class="metric-sub" id="m-imax-sub"></div>
     </div>
-    <div class="metric-card" style="--accent:var(--gray-700)">
+    <!-- CIRCUITOS ACTIVOS DONUT -->
+    <div class="metric-card" style="--accent:var(--green)">
       <div class="metric-label">Circuitos Activos</div>
-      <div class="metric-value" id="m-circ">—</div>
-      <div class="metric-unit">sin GRAL/BP</div>
-      <div class="metric-sub" id="m-circ-sub"></div>
+      <div class="metric-donut">
+        <div class="donut-wrap">
+          <canvas id="circ-donut"></canvas>
+          <div class="donut-center">
+            <div class="donut-pct" id="circ-pct">—</div>
+            <div class="donut-lbl">activos</div>
+          </div>
+        </div>
+        <div class="donut-info">
+          <div class="donut-val" id="m-circ">—</div>
+          <div class="donut-sub" id="m-circ-sub"></div>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- MAIN CHART + SALA LIST -->
   <div class="two-col">
     <div class="panel">
       <div class="panel-header">
@@ -218,42 +303,62 @@ table.detail .num{font-family:var(--mono);text-align:right;color:var(--gray-900)
     </div>
   </div>
 
+  <!-- AC/DC + PERÍODO + GENERAL vs CIRCUITOS -->
   <div class="three-col">
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">AC vs DC</div></div>
-      <div class="panel-body"><div class="adc-block" id="adc-block"><div class="empty">Cargando…</div></div></div>
+      <div class="panel-header"><div class="panel-title">Proporción AC / DC</div></div>
+      <div class="panel-body"><div class="prop-wrap" id="prop-wrap"><div class="empty">Cargando…</div></div></div>
     </div>
     <div class="panel">
       <div class="panel-header"><div class="panel-title">Último período por sala</div></div>
       <div class="panel-body" id="periodo-panel"><div class="empty">Cargando…</div></div>
     </div>
     <div class="panel">
-      <div class="panel-header"><div class="panel-title">Top 10 circuitos</div></div>
-      <div class="panel-body"><div class="sala-list" id="top-circ"><div class="empty">Cargando…</div></div></div>
+      <div class="panel-header"><div class="panel-title">General vs Suma circuitos</div></div>
+      <div class="panel-body"><div class="chart-wrap" style="height:200px"><canvas id="gral-chart"></canvas></div></div>
     </div>
   </div>
 
+  <!-- VARIACIÓN MENSUAL -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Variación mensual por sala</div>
+      <div style="font-size:11px;color:var(--text3)">Comparativa respecto al mes anterior</div>
+    </div>
+    <div class="panel-body" id="var-panel"><div class="empty">Cargando…</div></div>
+  </div>
+
+  <!-- DETAIL TABLE -->
   <div class="panel">
     <div class="panel-header">
       <div class="panel-title">Detalle de circuitos</div>
       <button class="btn btn-ghost" onclick="exportCSV()">↓ Exportar CSV</button>
     </div>
     <div class="tbl-wrap">
-      <table class="detail">
+      <table class="detail" id="detail-table">
         <thead>
           <tr>
-            <th onclick="sort('sala')">Sala ↕</th>
-            <th onclick="sort('tablero')">Tablero ↕</th>
-            <th onclick="sort('cto')">CTO ↕</th>
-            <th onclick="sort('tipo_corriente')">Tipo ↕</th>
-            <th onclick="sort('corriente_r')" style="text-align:right">R (A) ↕</th>
-            <th onclick="sort('corriente_s')" style="text-align:right">S (A) ↕</th>
-            <th onclick="sort('corriente_t')" style="text-align:right">T (A) ↕</th>
-            <th onclick="sort('potencia_kw')" style="text-align:right">kW ↕</th>
+            <th class="sortable" onclick="sort('sala')">Sala ↕</th>
+            <th class="sortable" onclick="sort('tablero')">Tablero ↕</th>
+            <th class="sortable" onclick="sort('cto')">CTO ↕</th>
+            <th class="sortable" onclick="sort('tipo_corriente')">Tipo ↕</th>
+            <th class="sortable" style="text-align:right" onclick="sort('corriente_r')">R (A) ↕</th>
+            <th class="sortable" style="text-align:right" onclick="sort('corriente_s')">S (A) ↕</th>
+            <th class="sortable" style="text-align:right" onclick="sort('corriente_t')">T (A) ↕</th>
+            <th class="sortable" style="text-align:right" onclick="sort('potencia_kw')">kW ↕</th>
             <th>Estado</th>
+          </tr>
+          <tr class="filter-row" id="col-filters">
+            <th><input type="text" id="cf-sala" placeholder="Filtrar…" oninput="applyColFilters()"></th>
+            <th><input type="text" id="cf-tablero" placeholder="Filtrar…" oninput="applyColFilters()"></th>
+            <th><input type="text" id="cf-cto" placeholder="Filtrar…" oninput="applyColFilters()"></th>
+            <th><select id="cf-tipo" onchange="applyColFilters()"><option value="">Todos</option><option>AC</option><option>DC</option></select></th>
+            <th></th><th></th><th></th><th></th>
+            <th><select id="cf-estado" onchange="applyColFilters()"><option value="">Todos</option><option>ON</option><option>OFF</option></select></th>
           </tr>
         </thead>
         <tbody id="detail-tbody"></tbody>
+        <tfoot id="detail-foot"></tfoot>
       </table>
     </div>
   </div>
@@ -265,8 +370,38 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const TABLE='mediciones';
 const PAGE=1000;
 
-let allRows=[],filtered=[],sortCol='potencia_kw',sortAsc=false,mainChart=null,currentTab='evolucion',isLoading=false;
+let allRows=[],filtered=[],colFiltered=[],sortCol='potencia_kw',sortAsc=false;
+let mainChart=null,circDonut=null,gralChart=null,currentTab='evolucion',isLoading=false;
 
+// ── THEME ──
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+  document.getElementById('theme-label').textContent=isDark?'Claro':'Oscuro';
+  localStorage.setItem('theme',isDark?'light':'dark');
+  renderAll();
+}
+(function(){
+  const t=localStorage.getItem('theme')||'light';
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('theme-label').textContent=t==='dark'?'Oscuro':'Claro';
+})();
+
+// ── UTILS ──
+const noGral=r=>!r.es_circuito_general;
+const fmt=(n,d=2)=>(n===null||n===undefined||isNaN(n))?'—':parseFloat(n).toFixed(d);
+function setStatus(s,t){document.getElementById('sdot').className='sdot '+s;document.getElementById('stxt').textContent=t;}
+function showErr(m){const e=document.getElementById('err-bar');e.textContent=m;e.style.display='block';}
+function hideErr(){document.getElementById('err-bar').style.display='none';}
+function isDark(){return document.documentElement.getAttribute('data-theme')==='dark';}
+function cssVar(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+const PALETTE=['#1d4ed8','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#65a30d','#9333ea','#ea580c','#0284c7','#16a34a','#ca8a04','#e11d48','#4f46e5','#0d9488'];
+const colorMap={};
+function salaColor(s){if(!colorMap[s])colorMap[s]=PALETTE[Object.keys(colorMap).length%PALETTE.length];return colorMap[s];}
+
+// ── FETCH ──
 async function sbFetch(params=''){
   let rows=[],offset=0;
   while(true){
@@ -283,18 +418,9 @@ async function sbFetch(params=''){
   return rows;
 }
 
-const noGral=r=>r.es_circuito_general!==true&&r.es_circuito_general!=='true'&&r.es_circuito_general!==1;
-const fmt=(n,d=2)=>(n===null||n===undefined||isNaN(n))?'—':parseFloat(n).toFixed(d);
-function setStatus(s,t){document.getElementById('sdot').className='status-dot '+s;document.getElementById('stxt').textContent=t;}
-function showErr(m){const e=document.getElementById('err-bar');e.textContent=m;e.style.display='block';}
-function hideErr(){document.getElementById('err-bar').style.display='none';}
-
-const PALETTE=['#1d4ed8','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#65a30d','#9333ea','#ea580c','#0284c7','#16a34a','#ca8a04','#e11d48','#4f46e5','#0d9488'];
-const colorMap={};
-function salaColor(s){if(!colorMap[s])colorMap[s]=PALETTE[Object.keys(colorMap).length%PALETTE.length];return colorMap[s];}
-
+// ── LOAD ──
 async function loadData(){
-  if(isLoading)return; // evitar doble disparo
+  if(isLoading)return;
   isLoading=true;
   hideErr();setStatus('loading','Cargando…');
   document.getElementById('loading').classList.remove('hidden');
@@ -307,8 +433,8 @@ async function loadData(){
       const hasta=new Date(y,m,0).toISOString().slice(0,10);
       params+=`&periodo=gte.${mes}-01&periodo=lte.${hasta}`;
     }
+    // Traer también todos los períodos para histórico (sin filtro de mes)
     allRows=await sbFetch(params);
-
     buildFilters();applyFilters();
     setStatus('ok',`${allRows.length.toLocaleString()} filas`);
     document.getElementById('last-updated').textContent=new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
@@ -317,6 +443,7 @@ async function loadData(){
   document.getElementById('loading').classList.add('hidden');
 }
 
+// ── FILTERS ──
 function buildFilters(){
   const salas=[...new Set(allRows.map(r=>r.sala).filter(Boolean))].sort();
   const fS=document.getElementById('f-sala');const curS=fS.value;
@@ -352,11 +479,40 @@ function applyFilters(){
   if(sala)filtered=filtered.filter(r=>r.sala===sala);
   if(tablero)filtered=filtered.filter(r=>r.tablero===tablero);
   if(cto)filtered=filtered.filter(r=>r.cto===cto);
+  colFiltered=[...filtered];
   renderAll();
 }
+function applyColFilters(){
+  const fs=document.getElementById('cf-sala').value.toLowerCase();
+  const ft=document.getElementById('cf-tablero').value.toLowerCase();
+  const fc=document.getElementById('cf-cto').value.toLowerCase();
+  const fti=document.getElementById('cf-tipo').value;
+  const fe=document.getElementById('cf-estado').value;
+  colFiltered=filtered.filter(r=>{
+    if(fs&&!(r.sala||'').toLowerCase().includes(fs))return false;
+    if(ft&&!(r.tablero||'').toLowerCase().includes(ft))return false;
+    if(fc&&!(r.cto||'').toLowerCase().includes(fc))return false;
+    if(fti&&r.tipo_corriente!==fti)return false;
+    if(fe&&(r.estado_disyuntor||'').toUpperCase()!==fe)return false;
+    return true;
+  });
+  renderDetail();
+}
 
-function renderAll(){renderMetrics();renderMainChart();renderSalaList();renderADC();renderPeriodo();renderTopCirc();renderDetail();}
+// ── RENDER ALL ──
+function renderAll(){
+  renderMetrics();
+  renderMainChart();
+  renderSalaList();
+  renderProp();
+  renderPeriodo();
+  renderGralChart();
+  renderVariacion();
+  colFiltered=[...filtered];
+  applyColFilters();
+}
 
+// ── METRICS ──
 function renderMetrics(){
   const noG=filtered.filter(noGral);
   const kwT=noG.reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0);
@@ -372,45 +528,58 @@ function renderMetrics(){
   noG.forEach(r=>['corriente_r','corriente_s','corriente_t'].forEach(c=>{const v=parseFloat(r[c]||0);if(v>maxI){maxI=v;maxRow=r;}}));
   document.getElementById('m-imax').textContent=fmt(maxI,1);
   document.getElementById('m-imax-sub').textContent=maxRow?`${maxRow.sala} / ${maxRow.cto}`:'';
-  const circs=new Set(noG.map(r=>`${r.sala}|${r.tablero}|${r.cto}`));
-  const salas=new Set(noG.map(r=>r.sala));
-  document.getElementById('m-circ').textContent=circs.size;
-  document.getElementById('m-circ-sub').textContent=`${salas.size} salas`;
+  // Circuitos activos donut
+  const total=new Set(noG.map(r=>`${r.sala}|${r.tablero}|${r.cto}`)).size;
+  const activos=new Set(noG.filter(r=>(r.estado_disyuntor||'').toUpperCase()==='ON').map(r=>`${r.sala}|${r.tablero}|${r.cto}`)).size;
+  const pct=total?Math.round(activos/total*100):0;
+  document.getElementById('m-circ').textContent=activos;
+  document.getElementById('m-circ-sub').textContent=`de ${total} circuitos`;
+  document.getElementById('circ-pct').textContent=pct+'%';
+  if(circDonut)circDonut.destroy();
+  const ctx=document.getElementById('circ-donut');
+  circDonut=new Chart(ctx,{
+    type:'doughnut',
+    data:{datasets:[{data:[activos,total-activos],backgroundColor:[cssVar('--green'),'rgba(0,0,0,0.08)'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{display:false},tooltip:{enabled:false}}}
+  });
 }
 
+// ── CHART OPTS ──
 function baseOpts(){
+  const dark=isDark();
+  const gridC=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
+  const tickC=dark?'#64748b':'#6b7280';
   return{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1f2937',titleColor:'#9ca3af',bodyColor:'#f9fafb',borderColor:'#374151',borderWidth:1,padding:10,callbacks:{label:c=>` ${(c.parsed.y??c.parsed.x).toFixed(2)} kW`}}},
-    scales:{x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#6b7280',font:{family:"'IBM Plex Mono'",size:10},maxRotation:40}},y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#6b7280',font:{family:"'IBM Plex Mono'",size:10}}}}};
+    plugins:{legend:{display:false},tooltip:{backgroundColor:dark?'#1e293b':'#1f2937',titleColor:dark?'#94a3b8':'#9ca3af',bodyColor:dark?'#f1f5f9':'#f9fafb',borderColor:dark?'#334155':'#374151',borderWidth:1,padding:10,callbacks:{label:c=>` ${(c.parsed.y??c.parsed.x).toFixed(2)} kW`}}},
+    scales:{x:{grid:{color:gridC},ticks:{color:tickC,font:{family:"'IBM Plex Mono'",size:10},maxRotation:40}},y:{grid:{color:gridC},ticks:{color:tickC,font:{family:"'IBM Plex Mono'",size:10}}}}};
 }
 
+// ── MAIN CHART ──
 function renderMainChart(){
-  const ctx=document.getElementById('main-chart');
   if(mainChart){mainChart.destroy();mainChart=null;}
+  const ctx=document.getElementById('main-chart');
   const noG=filtered.filter(noGral);
   const opts=baseOpts();
   if(currentTab==='evolucion'){
     const byP={};
     noG.forEach(r=>{const p=(r.periodo||'').slice(0,7);if(!byP[p])byP[p]=0;byP[p]+=parseFloat(r.potencia_kw||0);});
     const labels=Object.keys(byP).sort();
-    mainChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'kW Total',data:labels.map(p=>+byP[p].toFixed(3)),borderColor:'#1d4ed8',backgroundColor:'rgba(29,78,216,0.07)',fill:true,tension:0.3,pointRadius:labels.length<15?4:0,pointHoverRadius:5}]},options:opts});
+    mainChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'kW',data:labels.map(p=>+byP[p].toFixed(3)),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',fill:true,tension:0.3,pointRadius:labels.length<15?4:0,pointHoverRadius:5}]},options:opts});
   }else if(currentTab==='sala'){
-    const byS={};
-    noG.forEach(r=>{if(!byS[r.sala])byS[r.sala]=0;byS[r.sala]+=parseFloat(r.potencia_kw||0);});
+    const byS={};noG.forEach(r=>{if(!byS[r.sala])byS[r.sala]=0;byS[r.sala]+=parseFloat(r.potencia_kw||0);});
     const entries=Object.entries(byS).sort((a,b)=>b[1]-a[1]);
     mainChart=new Chart(ctx,{type:'bar',data:{labels:entries.map(e=>e[0]),datasets:[{label:'kW',data:entries.map(e=>+e[1].toFixed(3)),backgroundColor:entries.map(e=>salaColor(e[0])+'cc'),borderColor:entries.map(e=>salaColor(e[0])),borderWidth:1,borderRadius:4}]},options:opts});
   }else{
-    const byT={};
-    noG.forEach(r=>{const k=`${r.sala} / ${r.tablero||'—'}`;if(!byT[k])byT[k]=0;byT[k]+=parseFloat(r.potencia_kw||0);});
+    const byT={};noG.forEach(r=>{const k=`${r.sala}/${r.tablero||'—'}`;if(!byT[k])byT[k]=0;byT[k]+=parseFloat(r.potencia_kw||0);});
     const entries=Object.entries(byT).sort((a,b)=>b[1]-a[1]).slice(0,20);
-    mainChart=new Chart(ctx,{type:'bar',data:{labels:entries.map(e=>e[0]),datasets:[{label:'kW',data:entries.map(e=>+e[1].toFixed(3)),backgroundColor:'rgba(29,78,216,0.15)',borderColor:'#1d4ed8',borderWidth:1,borderRadius:4}]},options:{...opts,indexAxis:'y'}});
+    mainChart=new Chart(ctx,{type:'bar',data:{labels:entries.map(e=>e[0]),datasets:[{label:'kW',data:entries.map(e=>+e[1].toFixed(3)),backgroundColor:'rgba(59,130,246,0.2)',borderColor:'#3b82f6',borderWidth:1,borderRadius:4}]},options:{...opts,indexAxis:'y'}});
   }
 }
 
+// ── SALA LIST ──
 function renderSalaList(){
   const noG=filtered.filter(noGral);
-  const byS={};
-  noG.forEach(r=>{if(!byS[r.sala])byS[r.sala]=0;byS[r.sala]+=parseFloat(r.potencia_kw||0);});
+  const byS={};noG.forEach(r=>{if(!byS[r.sala])byS[r.sala]=0;byS[r.sala]+=parseFloat(r.potencia_kw||0);});
   const entries=Object.entries(byS).sort((a,b)=>b[1]-a[1]);
   const max=entries[0]?.[1]||1;
   const el=document.getElementById('sala-list');
@@ -423,50 +592,110 @@ function renderSalaList(){
     </div>`).join('');
 }
 
-function renderADC(){
+// ── PROPORCIÓN AC/DC ──
+function renderProp(){
   const noG=filtered.filter(noGral);
   let kwAC=0,kwDC=0;
   noG.forEach(r=>{const v=parseFloat(r.potencia_kw||0);if(r.tipo_corriente==='DC')kwDC+=v;else kwAC+=v;});
   const total=kwAC+kwDC||1;
-  document.getElementById('adc-block').innerHTML=`
-    <div class="adc-item">
-      <div class="adc-header"><span class="adc-label">AC</span><span class="adc-val">${kwAC.toFixed(2)} kW · ${(kwAC/total*100).toFixed(1)}%</span></div>
-      <div class="adc-track"><div class="adc-fill ac" style="width:${(kwAC/total*100).toFixed(1)}%"></div></div>
+  document.getElementById('prop-wrap').innerHTML=`
+    <div class="prop-item">
+      <div class="prop-header"><span class="prop-label">AC</span><span class="prop-val">${kwAC.toFixed(2)} kW</span></div>
+      <div class="prop-track"><div class="prop-fill ac" style="width:${(kwAC/total*100).toFixed(1)}%"><span>${(kwAC/total*100).toFixed(1)}%</span></div></div>
     </div>
-    <div class="adc-item">
-      <div class="adc-header"><span class="adc-label">DC</span><span class="adc-val">${kwDC.toFixed(2)} kW · ${(kwDC/total*100).toFixed(1)}%</span></div>
-      <div class="adc-track"><div class="adc-fill dc" style="width:${(kwDC/total*100).toFixed(1)}%"></div></div>
+    <div class="prop-item">
+      <div class="prop-header"><span class="prop-label">DC</span><span class="prop-val">${kwDC.toFixed(2)} kW</span></div>
+      <div class="prop-track"><div class="prop-fill dc" style="width:${(kwDC/total*100).toFixed(1)}%"><span>${(kwDC/total*100).toFixed(1)}%</span></div></div>
     </div>`;
 }
 
+// ── PERÍODO ──
 function renderPeriodo(){
   const byS={};
   filtered.forEach(r=>{if(!byS[r.sala]||r.periodo>byS[r.sala])byS[r.sala]=r.periodo;});
   const entries=Object.entries(byS).sort((a,b)=>a[0].localeCompare(b[0]));
   document.getElementById('periodo-panel').innerHTML=entries.length
-    ?`<div class="sala-list">${entries.map(([sala,per])=>`<div class="sala-row"><div class="sala-name" title="${sala}">${sala}</div><div style="font-family:var(--mono);font-size:11px;color:var(--gray-500);margin-left:auto">${per||'—'}</div></div>`).join('')}</div>`
+    ?`<div class="sala-list">${entries.map(([sala,per])=>`<div class="sala-row"><div class="sala-name" title="${sala}">${sala}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);margin-left:auto">${per||'—'}</div></div>`).join('')}</div>`
     :'<div class="empty">Sin datos</div>';
 }
 
-function renderTopCirc(){
+// ── GENERAL vs CIRCUITOS ──
+function renderGralChart(){
+  if(gralChart){gralChart.destroy();gralChart=null;}
+  const ctx=document.getElementById('gral-chart');
+  // Potencia por sala (sin GRAL)
   const noG=filtered.filter(noGral);
-  const byC={};
-  noG.forEach(r=>{const k=`${r.sala} · ${r.tablero||'—'} · ${r.cto||'—'}`;if(!byC[k])byC[k]=0;byC[k]+=parseFloat(r.potencia_kw||0);});
-  const entries=Object.entries(byC).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const max=entries[0]?.[1]||1;
-  const el=document.getElementById('top-circ');
-  if(!entries.length){el.innerHTML='<div class="empty">Sin datos</div>';return;}
-  el.innerHTML=entries.map(([label,kw])=>`
-    <div class="sala-row">
-      <div class="sala-name" title="${label}" style="width:150px">${label}</div>
-      <div class="sala-bar-wrap"><div class="sala-bar" style="width:${(kw/max*100).toFixed(1)}%"></div></div>
-      <div class="sala-kw">${kw.toFixed(2)}</div>
-    </div>`).join('');
+  const byS={};noG.forEach(r=>{if(!byS[r.sala])byS[r.sala]=0;byS[r.sala]+=parseFloat(r.potencia_kw||0);});
+  // Potencia GRAL por sala
+  const gral=filtered.filter(r=>r.es_circuito_general);
+  const byG={};gral.forEach(r=>{if(!byG[r.sala])byG[r.sala]=0;byG[r.sala]+=parseFloat(r.potencia_kw||0);});
+  const salas=Object.keys(byS).sort();
+  if(!salas.length){return;}
+  const dark=isDark();
+  const gridC=dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
+  const tickC=dark?'#64748b':'#6b7280';
+  gralChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:salas,
+      datasets:[
+        {label:'Suma circuitos',data:salas.map(s=>+(byS[s]||0).toFixed(2)),backgroundColor:'rgba(59,130,246,0.3)',borderColor:'#3b82f6',borderWidth:1,borderRadius:3},
+        {label:'General',data:salas.map(s=>+(byG[s]||0).toFixed(2)),backgroundColor:'rgba(234,179,8,0.3)',borderColor:'#ca8a04',borderWidth:1,borderRadius:3}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,labels:{color:tickC,font:{family:"'IBM Plex Mono'",size:9},boxWidth:10,padding:8}},tooltip:{backgroundColor:dark?'#1e293b':'#1f2937',titleColor:dark?'#94a3b8':'#9ca3af',bodyColor:dark?'#f1f5f9':'#f9fafb',borderColor:dark?'#334155':'#374151',borderWidth:1}},
+      scales:{x:{grid:{color:gridC},ticks:{color:tickC,font:{size:9},maxRotation:45}},y:{grid:{color:gridC},ticks:{color:tickC,font:{size:9}}}}
+    }
+  });
 }
 
+// ── VARIACIÓN MENSUAL ──
+async function renderVariacion(){
+  const panel=document.getElementById('var-panel');
+  // Obtener todos los períodos disponibles
+  const periodos=[...new Set(allRows.map(r=>r.periodo))].sort();
+  if(periodos.length<2){
+    panel.innerHTML='<div class="empty">Se necesitan al menos 2 períodos para mostrar variación</div>';
+    return;
+  }
+  // Usar los 2 últimos períodos
+  const p2=periodos[periodos.length-1]; // actual
+  const p1=periodos[periodos.length-2]; // anterior
+  // Calcular kW por sala para cada período
+  const kw1={},kw2={};
+  allRows.filter(r=>!r.es_circuito_general).forEach(r=>{
+    const kw=parseFloat(r.potencia_kw||0);
+    if(r.periodo===p1){if(!kw1[r.sala])kw1[r.sala]=0;kw1[r.sala]+=kw;}
+    if(r.periodo===p2){if(!kw2[r.sala])kw2[r.sala]=0;kw2[r.sala]+=kw;}
+  });
+  const salas=[...new Set([...Object.keys(kw1),...Object.keys(kw2)])].sort();
+  if(!salas.length){panel.innerHTML='<div class="empty">Sin datos</div>';return;}
+  panel.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+      ${salas.map(sala=>{
+        const v1=kw1[sala]||0,v2=kw2[sala]||0;
+        const diff=v2-v1;
+        const pct=v1?((diff/v1)*100):0;
+        const cls=diff>0.05?'var-pos':diff<-0.05?'var-neg':'var-neu';
+        const arrow=diff>0.05?'▲':diff<-0.05?'▼':'—';
+        const sign=diff>0.05?'+':'';
+        return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:11px;font-weight:600;color:var(--text2)">${sala}</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--text)">${v2.toFixed(2)} <span style="font-size:11px;color:var(--text3)">kW</span></div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:12px" class="${cls}">${arrow} ${sign}${diff.toFixed(2)} kW (${sign}${pct.toFixed(1)}%)</div>
+          <div style="font-size:10px;color:var(--text4)">vs ${p1.slice(0,7)}: ${v1.toFixed(2)} kW</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text4)">Período actual: ${p2.slice(0,7)} · Período anterior: ${p1.slice(0,7)}</div>`;
+}
+
+// ── DETAIL TABLE ──
 let detailData=[];
 function renderDetail(){
-  detailData=[...filtered].sort((a,b)=>{
+  detailData=[...colFiltered].sort((a,b)=>{
     let va=a[sortCol]??'',vb=b[sortCol]??'';
     if(typeof va==='string')va=va.toLowerCase();
     if(typeof vb==='string')vb=vb.toLowerCase();
@@ -477,8 +706,7 @@ function renderDetail(){
   const gBadge=r=>r.es_circuito_general?' <span class="badge badge-gral">GRAL</span>':'';
   document.getElementById('detail-tbody').innerHTML=detailData.map(r=>`
     <tr>
-      <td>${r.sala||'—'}</td>
-      <td>${r.tablero||'—'}</td>
+      <td>${r.sala||'—'}</td><td>${r.tablero||'—'}</td>
       <td>${r.cto||'—'}${gBadge(r)}</td>
       <td>${badgeT(r)}</td>
       <td class="num">${fmt(r.corriente_r,2)}</td>
@@ -487,10 +715,24 @@ function renderDetail(){
       <td class="num">${fmt(r.potencia_kw,3)}</td>
       <td>${badgeE(r.estado_disyuntor)}</td>
     </tr>`).join('');
+  // Footer con totales
+  const sumR=detailData.reduce((s,r)=>s+(parseFloat(r.corriente_r)||0),0);
+  const sumS=detailData.reduce((s,r)=>s+(parseFloat(r.corriente_s)||0),0);
+  const sumT=detailData.reduce((s,r)=>s+(parseFloat(r.corriente_t)||0),0);
+  const sumKW=detailData.reduce((s,r)=>s+(parseFloat(r.potencia_kw)||0),0);
+  document.getElementById('detail-foot').innerHTML=`
+    <tr>
+      <td colspan="4">TOTAL (${detailData.length} filas)</td>
+      <td class="num">${sumR.toFixed(2)}</td>
+      <td class="num">${sumS.toFixed(2)}</td>
+      <td class="num">${sumT.toFixed(2)}</td>
+      <td class="num">${sumKW.toFixed(3)}</td>
+      <td></td>
+    </tr>`;
 }
-
 function sort(col){if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=false;}renderDetail();}
 
+// ── EXPORT ──
 function exportCSV(){
   const headers=['Período','Sala','Tablero','CTO','Tipo','R(A)','S(A)','T(A)','kW','Estado','GRAL'];
   const rows=detailData.map(r=>[r.periodo,r.sala,r.tablero,r.cto,r.tipo_corriente,r.corriente_r,r.corriente_s,r.corriente_t,r.potencia_kw,r.estado_disyuntor,r.es_circuito_general?'SI':'NO']);
@@ -501,12 +743,11 @@ function exportCSV(){
   a.click();
 }
 
+// ── EVENTS ──
 document.querySelectorAll('.tab').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentTab=btn.dataset.tab;
-    renderMainChart();
+    btn.classList.add('active');currentTab=btn.dataset.tab;renderMainChart();
   });
 });
 document.getElementById('f-sala').addEventListener('change',()=>{updateTableroFilter();applyFilters();});
@@ -514,23 +755,16 @@ document.getElementById('f-tablero').addEventListener('change',()=>{updateCTOFil
 document.getElementById('f-cto').addEventListener('change',applyFilters);
 document.getElementById('f-mes').addEventListener('change',loadData);
 
+// ── INIT ──
 (async function init(){
-  // Detectar automáticamente el último período disponible en Supabase
   try{
-    const res=await fetch(`${SB_URL}/rest/v1/mediciones?select=periodo&order=periodo.desc&limit=1`,{
+    const res=await fetch(`${SB_URL}/rest/v1/${TABLE}?select=periodo&order=periodo.desc&limit=1`,{
       headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Accept':'application/json'}
     });
     const data=await res.json();
-    if(data&&data.length>0){
-      document.getElementById('f-mes').value=data[0].periodo.slice(0,7);
-    }else{
-      const now=new Date();
-      document.getElementById('f-mes').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    }
-  }catch(e){
-    const now=new Date();
-    document.getElementById('f-mes').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  }
+    if(data&&data.length>0)document.getElementById('f-mes').value=data[0].periodo.slice(0,7);
+    else{const n=new Date();document.getElementById('f-mes').value=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;}
+  }catch{const n=new Date();document.getElementById('f-mes').value=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;}
   loadData();
 })();
 </script>
