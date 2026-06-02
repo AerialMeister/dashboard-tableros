@@ -665,6 +665,7 @@ function toggleGroup(grupo){
     highlightGroup(grupo);
   }
   renderGroupCards();
+  filtrarVariacion();
 }
 
 function highlightGroup(grupo){
@@ -809,11 +810,11 @@ function renderSalaBarChart(){
       type:'line',
       label:'Mes anterior',
       data:lineData,
-      borderColor:'rgba(56,189,248,0.9)',
+      borderColor:'rgba(148,163,184,0.9)',
       backgroundColor:'transparent',
       borderWidth:2,
       borderDash:[4,3],
-      pointBackgroundColor:'rgba(56,189,248,0.9)',
+      pointBackgroundColor:'rgba(148,163,184,0.9)',
       pointRadius:4,
       pointHoverRadius:6,
       tension:0.3,
@@ -1000,7 +1001,12 @@ function filtrarVariacion(){
   const fmtPer=window._varFmtPer||(p=>p);
   if(!varData.length){return;}
 
-  const datos=buscar?varData.filter(d=>d.sala.toLowerCase().includes(buscar)):varData;
+  // Filtrar por grupo activo si hay uno seleccionado
+  let datos=varData;
+  if(grupoActivo==='tic')      datos=datos.filter(d=>GRUPOS.tic.has(d.sala));
+  else if(grupoActivo==='redes') datos=datos.filter(d=>GRUPOS.redes.has(d.sala));
+  else if(grupoActivo==='empresas') datos=datos.filter(d=>esEmpresas(d.sala));
+  if(buscar) datos=datos.filter(d=>d.sala.toLowerCase().includes(buscar));
   if(!datos.length){panel.innerHTML='<div class="empty">Sin resultados</div>';return;}
 
   const cards=datos.map(({sala,v1,v2,diff,pct})=>{
