@@ -28,6 +28,7 @@
   --red-lt:    #fef2f2;
   --yellow:    #ca8a04;
   --yellow-lt: #fefce8;
+  --purple-lt: #f5f3ff;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.04);
   --shadow:    0 4px 12px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.05);
 }
@@ -51,6 +52,7 @@
   --red-lt:    #450a0a;
   --yellow:    #eab308;
   --yellow-lt: #422006;
+  --purple-lt: #2e1065;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
   --shadow:    0 4px 12px rgba(0,0,0,0.4);
 }
@@ -199,6 +201,17 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
 
 .empty{text-align:center;padding:40px 20px;color:var(--text4);font-size:13px;}
 
+/* TARJETAS DE GRUPO */
+.group-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+.group-card{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:1.25rem 1.5rem;box-shadow:var(--shadow-sm);cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+.group-card::after{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--gc-color,var(--blue));}
+.group-card:hover{box-shadow:var(--shadow);border-color:var(--gc-color,var(--blue));}
+.group-card.active{border-color:var(--gc-color,var(--blue));background:var(--gc-bg,var(--blue-lt));}
+.group-card-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:6px;}
+.group-card-value{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--gc-color,var(--blue));line-height:1;}
+.group-card-unit{font-size:11px;color:var(--text4);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+.group-card-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+
 /* ADVERTENCIA VARIACIÓN */
 .var-card{position:relative;}
 .var-warn{position:absolute;top:8px;right:8px;font-size:16px;line-height:1;cursor:default;}
@@ -284,9 +297,9 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
       <div class="metric-sub" id="m-dc-sub"></div>
     </div>
     <div class="metric-card" style="--accent:var(--green)">
-      <div class="metric-label">Corriente Máx.</div>
+      <div class="metric-label">Corriente Total</div>
       <div class="metric-value" id="m-imax">—</div>
-      <div class="metric-unit">A</div>
+      <div class="metric-unit">A · sin GRAL/BP</div>
       <div class="metric-sub" id="m-imax-sub"></div>
     </div>
     <!-- CIRCUITOS ACTIVOS DONUT -->
@@ -309,6 +322,28 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
   </div>
 
 
+
+  <!-- TARJETAS DE GRUPO -->
+  <div class="group-cards" id="group-cards">
+    <div class="group-card" id="gc-empresas" style="--gc-color:#059669;--gc-bg:var(--green-lt)" onclick="toggleGroup('empresas')">
+      <div class="group-card-label">Salas Empresas</div>
+      <div class="group-card-value" id="gc-empresas-val">—</div>
+      <div class="group-card-unit">kW</div>
+      <div class="group-card-sub" id="gc-empresas-sub"></div>
+    </div>
+    <div class="group-card" id="gc-redes" style="--gc-color:#7c3aed;--gc-bg:var(--purple-lt,#f5f3ff)" onclick="toggleGroup('redes')">
+      <div class="group-card-label">Salas Redes</div>
+      <div class="group-card-value" id="gc-redes-val">—</div>
+      <div class="group-card-unit">kW</div>
+      <div class="group-card-sub" id="gc-redes-sub"></div>
+    </div>
+    <div class="group-card" id="gc-tic" style="--gc-color:#1d4ed8;--gc-bg:var(--blue-lt)" onclick="toggleGroup('tic')">
+      <div class="group-card-label">Salas TIC</div>
+      <div class="group-card-value" id="gc-tic-val">—</div>
+      <div class="group-card-unit">kW</div>
+      <div class="group-card-sub" id="gc-tic-sub"></div>
+    </div>
+  </div>
 
   <!-- BARRAS POR SALA -->
   <div class="panel">
@@ -582,9 +617,74 @@ function applyColFilters(){
   renderDetail();
 }
 
+// ── GRUPOS DE SALAS ──
+const GRUPOS = {
+  redes: new Set(['CCI','TELXIUS','MOVIL','NOKIA','TX','CONMUTACIÓN','ALCATEL','NEC','PORTADORES','PREPAGO','GSM','PSSBA','CROSS CONNECT','DATOS','SDH','PRINCIPAL 9']),
+  tic:   new Set(['TIC 1','TIC 2','TIC 3','TIC 4','TIC 5','TIC 6']),
+};
+// Empresas = todo lo que no es redes ni TIC
+function esEmpresas(sala){ return !GRUPOS.redes.has(sala) && !GRUPOS.tic.has(sala); }
+
+let grupoActivo = null; // 'empresas', 'redes', 'tic' o null
+
+function renderGroupCards(){
+  const bySala = kwPorSala(filtered);
+  let kwEmp=0, salasEmp=[], kwRed=0, salasRed=[], kwTic=0, salasTic=[];
+  Object.entries(bySala).forEach(([sala, kw])=>{
+    if(GRUPOS.tic.has(sala))     { kwTic+=kw; salasTic.push(sala); }
+    else if(GRUPOS.redes.has(sala)){ kwRed+=kw; salasRed.push(sala); }
+    else                          { kwEmp+=kw; salasEmp.push(sala); }
+  });
+  document.getElementById('gc-empresas-val').textContent = kwEmp.toFixed(2);
+  document.getElementById('gc-empresas-sub').textContent = `${salasEmp.length} salas`;
+  document.getElementById('gc-redes-val').textContent    = kwRed.toFixed(2);
+  document.getElementById('gc-redes-sub').textContent    = `${salasRed.length} salas`;
+  document.getElementById('gc-tic-val').textContent      = kwTic.toFixed(2);
+  document.getElementById('gc-tic-sub').textContent      = `${salasTic.length} salas`;
+  // Marcar activo
+  ['empresas','redes','tic'].forEach(g=>{
+    document.getElementById(`gc-${g}`).classList.toggle('active', grupoActivo===g);
+  });
+}
+
+function toggleGroup(grupo){
+  if(grupoActivo===grupo){
+    // Deseleccionar
+    grupoActivo=null;
+    document.getElementById('f-sala').value='';
+    updateTableroFilter();
+    applyFilters();
+  } else {
+    grupoActivo=grupo;
+    // No filtramos por sala individual sino que dejamos filtrar visualmente
+    // Resaltar en el gráfico de barras las salas del grupo
+    document.getElementById('f-sala').value='';
+    updateTableroFilter();
+    applyFilters();
+    // Resaltar barras del grupo en el gráfico
+    highlightGroup(grupo);
+  }
+  renderGroupCards();
+}
+
+function highlightGroup(grupo){
+  if(!salaBarChart) return;
+  const labels=salaBarChart.data.labels;
+  const inGroup = sala => {
+    if(grupo==='tic')      return GRUPOS.tic.has(sala);
+    if(grupo==='redes')    return GRUPOS.redes.has(sala);
+    if(grupo==='empresas') return esEmpresas(sala);
+    return true;
+  };
+  salaBarChart.data.datasets[0].backgroundColor=labels.map(l=>inGroup(l)?salaColor(l)+'cc':'rgba(150,150,150,0.15)');
+  salaBarChart.data.datasets[0].borderColor=labels.map(l=>inGroup(l)?salaColor(l):'rgba(150,150,150,0.2)');
+  salaBarChart.update();
+}
+
 // ── RENDER ALL ──
 function renderAll(){
   renderMetrics();
+  renderGroupCards();
   renderSalaBarChart();
   renderPeriodo();
   renderGralChart();
@@ -609,12 +709,16 @@ function renderMetrics(){
   document.getElementById('m-ac-sub').textContent=kwT?`${(kwAC/kwT*100).toFixed(0)}% del total`:'';
   document.getElementById('m-dc').textContent=fmt(kwDC);
   document.getElementById('m-dc-sub').textContent=kwT?`${(kwDC/kwT*100).toFixed(0)}% del total`:'';
-  // Corriente máx: solo circuitos normales (sin GRAL/BP/A/B/C)
+  // Corriente total: suma de todas las corrientes de circuitos normales (sin GRAL/BP)
   const circNorm=filtered.filter(r=>!r.es_circuito_general);
-  let maxI=0,maxRow=null;
-  circNorm.forEach(r=>['corriente_r','corriente_s','corriente_t'].forEach(c=>{const v=parseFloat(r[c]||0);if(v>maxI){maxI=v;maxRow=r;}}));
-  document.getElementById('m-imax').textContent=fmt(maxI,1);
-  document.getElementById('m-imax-sub').textContent=maxRow?`${maxRow.sala} / ${maxRow.cto}`:'';
+  let totalI=0;
+  circNorm.forEach(r=>{
+    totalI+=parseFloat(r.corriente_r||0);
+    totalI+=parseFloat(r.corriente_s||0);
+    totalI+=parseFloat(r.corriente_t||0);
+  });
+  document.getElementById('m-imax').textContent=fmt(totalI,1);
+  document.getElementById('m-imax-sub').textContent=`${circNorm.length} circuitos`;
   // Circuitos activos donut
   const total=new Set(noG.map(r=>`${r.sala}|${r.tablero}|${r.cto}`)).size;
   const activos=new Set(noG.filter(r=>(r.estado_disyuntor||'').toUpperCase()==='ON').map(r=>`${r.sala}|${r.tablero}|${r.cto}`)).size;
@@ -705,11 +809,11 @@ function renderSalaBarChart(){
       type:'line',
       label:'Mes anterior',
       data:lineData,
-      borderColor:'rgba(100,116,139,0.8)',
+      borderColor:'rgba(56,189,248,0.9)',
       backgroundColor:'transparent',
       borderWidth:2,
       borderDash:[4,3],
-      pointBackgroundColor:'rgba(100,116,139,0.8)',
+      pointBackgroundColor:'rgba(56,189,248,0.9)',
       pointRadius:4,
       pointHoverRadius:6,
       tension:0.3,
@@ -742,9 +846,18 @@ function renderSalaBarChart(){
         if(els.length>0){
           const sala=entries[els[0].index][0];
           if(selectedSala===sala){
-            clearDrilldown(); // deseleccionar al clicar la misma barra
+            clearDrilldown();
+            grupoActivo=null;
+            // Restaurar filtro de sala a "Todas"
+            document.getElementById('f-sala').value='';
+            updateTableroFilter();
+            applyFilters();
           } else {
             renderDrilldown(sala);
+            // Sincronizar filtro principal con la sala seleccionada
+            document.getElementById('f-sala').value=sala;
+            updateTableroFilter();
+            applyFilters();
           }
         }
       },
