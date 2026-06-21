@@ -199,6 +199,14 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
 .var-neg{color:var(--red);font-weight:600;}
 .var-neu{color:var(--text3);}
 
+/* INDICADORES DE TENDENCIA vs MES ANTERIOR (detalle de circuitos) */
+.trend{display:inline-block;margin-left:5px;font-size:11px;line-height:1;font-weight:700;vertical-align:middle;font-family:'IBM Plex Sans',sans-serif;}
+.trend-up{color:var(--green);}
+.trend-down{color:var(--red);}
+.trend-eq{color:var(--text4);}
+.kw-warn{display:inline-block;margin-left:4px;font-size:12px;line-height:1;cursor:default;vertical-align:middle;}
+.var-sala-tag{display:inline-flex;align-items:center;gap:6px;background:var(--blue-lt);color:var(--blue);border:1px solid var(--blue);border-radius:999px;font-size:11px;font-weight:600;padding:3px 10px;margin-bottom:10px;}
+
 .empty{text-align:center;padding:40px 20px;color:var(--text4);font-size:13px;}
 
 /* TARJETAS DE GRUPO */
@@ -403,6 +411,9 @@ table.detail tfoot td{font-family:'IBM Plex Mono',monospace;font-size:11px;font-
         <tbody id="detail-tbody"></tbody>
         <tfoot id="detail-foot"></tfoot>
       </table>
+    </div>
+    <div style="padding:8px 1.5rem;font-size:11px;color:var(--text4);border-top:1px solid var(--border)">
+      Indicadores vs mes anterior (mismo circuito): <span class="trend trend-up">▲</span> mayor · <span class="trend trend-eq">—</span> igual · <span class="trend trend-down">▼</span> menor · ⚠️ variación de kW ≥ 10%. Requiere un período (mes) seleccionado.
     </div>
   </div>
   <!-- RESUMEN FINAL -->
@@ -749,11 +760,12 @@ function renderPeriodo(){
 // ── BARRAS POR SALA ──
 let salaBarChart=null;
 let _kwMesAnterior={}; // kW mes anterior para la línea
+let _prevByCirc={};    // valores del mes anterior por circuito (sala|tablero|cto) para los indicadores de tendencia
 
 async function cargarMesAnterior(){
   // Determinar el mes anterior al seleccionado
   const mesSel=document.getElementById('f-mes').value;
-  if(!mesSel){_kwMesAnterior={};return;}
+  if(!mesSel){_kwMesAnterior={};_prevByCirc={};return;}
   // Traer todos los períodos disponibles
   try{
     let allP=new Set();let off2=0;
@@ -768,15 +780,23 @@ async function cargarMesAnterior(){
     }
     const periodos=[...allP].sort();
     const idx=periodos.indexOf(mesSel);
-    if(idx<=0){_kwMesAnterior={};return;}
+    if(idx<=0){_kwMesAnterior={};_prevByCirc={};return;}
     const mesAnt=periodos[idx-1];
     // Traer datos del mes anterior
     const [y,m]=mesAnt.split('-').map(Number);
     const hasta=new Date(y,m,0).toISOString().slice(0,10);
     const rows=await sbFetch(`&periodo=gte.${mesAnt}-01&periodo=lte.${hasta}&order=id.asc`);
     _kwMesAnterior=kwPorSala(rows);
+    // Construir lookup por circuito para los indicadores de tendencia
+    _prevByCirc={};
+    rows.forEach(r=>{
+      _prevByCirc[`${r.sala}|${r.tablero}|${r.cto}`]={
+        r:r.corriente_r, s:r.corriente_s, t:r.corriente_t, kw:r.potencia_kw
+      };
+    });
   }catch(e){
     _kwMesAnterior={};
+    _prevByCirc={};
   }
 }
 
@@ -883,6 +903,8 @@ function clearDrilldown(){
     salaBarChart.data.datasets[0].borderColor=salaBarChart.data.labels.map(l=>salaColor(l));
     salaBarChart.update();
   }
+  // Refrescar el panel de variación para volver a mostrar todas las salas
+  filtrarVariacion();
 }
 
 function renderDrilldown(sala){
@@ -938,6 +960,8 @@ function renderDrilldown(sala){
     salaBarChart.data.datasets[0].borderColor=labels.map(l=>l===sala?salaColor(l):'rgba(150,150,150,0.3)');
     salaBarChart.update();
   }
+  // Filtrar el panel de variación para mostrar solo la sala seleccionada
+  filtrarVariacion();
 }
 
 function renderGralChart(){
@@ -1001,13 +1025,25 @@ function filtrarVariacion(){
   const fmtPer=window._varFmtPer||(p=>p);
   if(!varData.length){return;}
 
-  // Filtrar por grupo activo si hay uno seleccionado
+  // 1) Si hay una sala seleccionada en el gráfico de barras, mostrar SOLO esa sala
   let datos=varData;
-  if(grupoActivo==='tic')      datos=datos.filter(d=>GRUPOS.tic.has(d.sala));
-  else if(grupoActivo==='redes') datos=datos.filter(d=>GRUPOS.redes.has(d.sala));
-  else if(grupoActivo==='empresas') datos=datos.filter(d=>esEmpresas(d.sala));
+  if(selectedSala){
+    datos=datos.filter(d=>d.sala===selectedSala);
+  } else {
+    // 2) Si no, filtrar por grupo activo (si hay uno seleccionado)
+    if(grupoActivo==='tic')      datos=datos.filter(d=>GRUPOS.tic.has(d.sala));
+    else if(grupoActivo==='redes') datos=datos.filter(d=>GRUPOS.redes.has(d.sala));
+    else if(grupoActivo==='empresas') datos=datos.filter(d=>esEmpresas(d.sala));
+  }
+  // 3) Filtro de texto del buscador (se aplica siempre)
   if(buscar) datos=datos.filter(d=>d.sala.toLowerCase().includes(buscar));
-  if(!datos.length){panel.innerHTML='<div class="empty">Sin resultados</div>';return;}
+
+  // Etiqueta indicando que se está mostrando una sola sala
+  const tag=selectedSala
+    ? `<div class="var-sala-tag">Mostrando solo: ${selectedSala} · haz clic de nuevo en la barra para ver todas</div>`
+    : '';
+
+  if(!datos.length){panel.innerHTML=tag+'<div class="empty">Sin resultados</div>';return;}
 
   const cards=datos.map(({sala,v1,v2,diff,pct})=>{
     const cls=diff>0.05?'var-pos':diff<-0.05?'var-neg':'var-neu';
@@ -1023,13 +1059,35 @@ function filtrarVariacion(){
     </div>`;
   }).join('');
 
-  panel.innerHTML=`
+  panel.innerHTML=tag+`
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">${cards}</div>
     <div style="margin-top:10px;font-size:11px;color:var(--text4)">Período actual: ${fmtPer(p2)} · Período anterior: ${fmtPer(p1)} · ⚠️ variación ≥ 10%</div>`;
 }
 
 // ── DETAIL TABLE ──
 let detailData=[];
+
+// Indicador de tendencia vs mes anterior para un valor del mismo circuito
+function trendMark(cur,prev){
+  if(prev===null||prev===undefined||prev===''||isNaN(parseFloat(prev)))return '';
+  const c=parseFloat(cur);
+  if(isNaN(c))return '';
+  const p=parseFloat(prev);
+  const eps=Math.max(Math.abs(p)*0.001,0.0005); // tolerancia para considerar "igual"
+  const d=c-p;
+  if(d>eps)  return ` <span class="trend trend-up" title="Mayor que el mes anterior (${p.toFixed(2)})">▲</span>`;
+  if(d<-eps) return ` <span class="trend trend-down" title="Menor que el mes anterior (${p.toFixed(2)})">▼</span>`;
+  return ` <span class="trend trend-eq" title="Igual que el mes anterior (${p.toFixed(2)})">—</span>`;
+}
+// Advertencia para kW cuando la variación vs mes anterior es ≥ 10%
+function kwWarn(cur,prev){
+  if(prev===null||prev===undefined||prev===''||isNaN(parseFloat(prev)))return '';
+  const c=parseFloat(cur),p=parseFloat(prev);
+  if(isNaN(c)||p===0)return '';
+  const pct=(c-p)/p*100;
+  return Math.abs(pct)>=10?` <span class="kw-warn" title="Variación de ${pct>0?'+':''}${pct.toFixed(1)}% en kW vs mes anterior (≥10%)">⚠️</span>`:'';
+}
+
 function renderDetail(){
   detailData=[...colFiltered].sort((a,b)=>{
     let va=a[sortCol]??'',vb=b[sortCol]??'';
@@ -1040,18 +1098,21 @@ function renderDetail(){
   const badgeT=r=>r.tipo_corriente==='DC'?'<span class="badge badge-dc">DC</span>':'<span class="badge badge-ac">AC</span>';
   const badgeE=e=>{const s=(e||'').toUpperCase();return s==='ON'?'<span class="badge badge-on">ON</span>':`<span class="badge badge-off">${e||'—'}</span>`;};
   const gBadge=r=>r.es_circuito_general?' <span class="badge badge-gral">GRAL</span>':'';
-  document.getElementById('detail-tbody').innerHTML=detailData.map(r=>`
+  document.getElementById('detail-tbody').innerHTML=detailData.map(r=>{
+    const prev=_prevByCirc[`${r.sala}|${r.tablero}|${r.cto}`];
+    return `
     <tr>
       <td>${r.sala||'—'}</td><td>${r.tablero||'—'}</td>
       <td>${r.cto||'—'}${gBadge(r)}</td>
       <td>${badgeT(r)}</td>
-      <td class="num">${fmt(r.corriente_r,2)}</td>
-      <td class="num">${fmt(r.corriente_s,2)}</td>
-      <td class="num">${fmt(r.corriente_t,2)}</td>
-      <td class="num">${fmt(r.potencia_kw,3)}</td>
+      <td class="num">${fmt(r.corriente_r,2)}${prev?trendMark(r.corriente_r,prev.r):''}</td>
+      <td class="num">${fmt(r.corriente_s,2)}${prev?trendMark(r.corriente_s,prev.s):''}</td>
+      <td class="num">${fmt(r.corriente_t,2)}${prev?trendMark(r.corriente_t,prev.t):''}</td>
+      <td class="num">${fmt(r.potencia_kw,3)}${prev?trendMark(r.potencia_kw,prev.kw):''}${prev?kwWarn(r.potencia_kw,prev.kw):''}</td>
       <td>${badgeE(r.estado_disyuntor)}</td>
       <td>${r.es_circuito_general?'<span class="badge badge-gral">GRAL</span>':''}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   // Footer con totales
   const sumR=detailData.reduce((s,r)=>s+(parseFloat(r.corriente_r)||0),0);
   const sumS=detailData.reduce((s,r)=>s+(parseFloat(r.corriente_s)||0),0);
